@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数字化作品互动展示平台</title>
+    <style>
+        /* --- 全局与字体样式 (Global & Font Styles) --- */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
+
+        :root {
+            --brand-orange: #ff6a00;
+            --background-dark: #000;
+            --text-primary: #fff;
+            --text-secondary: #a0a0a0;
+            --surface-color: #1a1a1a;
+            --border-color: #333;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: var(--background-dark);
+            color: var(--text-primary);
+            margin: 0;
+            overflow-x: hidden;
+            background-image: url('data:image/svg+xml,...'); /* 弱化背景网格效果 */
+            background-size: 50px 50px;
+        }
+
+        /* --- 顶部导航栏 (Header) --- */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 5%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            width: 90%;
+        }
+        
+        .header-title {
+            font-size: 1.25rem;
+            font-weight: 500;
+        }
+        .header-title span {
+            color: var(--brand-orange);
+            font-weight: 700;
+        }
+
+        .upload-btn {
+            background: var(--brand-orange);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px; /* 胶囊形状 */
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            border: none;
+        }
+        .upload-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(255, 106, 0, 0.5);
+        }
+        
+        @media (max-width: 768px) {
+            .header { flex-direction: column; gap: 1rem; }
+            .header-title { font-size: 1rem; text-align: center; }
+        }
+
+        /* --- 主内容与传送带 (Main Content & Marquee) --- */
+        .main-content {
+            padding: 2rem 0;
+        }
+        
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 2.5rem;
+        }
+
+        .marquee-container {
+            width: 100%;
+            overflow: hidden;
+            padding: 1rem 0;
+            mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent); /* 两端淡出效果 */
+        }
+        .marquee-track {
+            display: flex;
+            width: max-content;
+            animation: scroll 30s linear infinite;
+        }
+        .marquee-track.reverse {
+            animation-direction: reverse;
+        }
+        .marquee-container:hover .marquee-track {
+            animation-play-state: paused;
+        }
+
+        .work-card {
+            flex-shrink: 0;
+            width: 320px;
+            height: 180px;
+            margin: 0 15px;
+            border-radius: 16px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            border: 1px solid var(--border-color);
+        }
+        .work-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .work-card:hover {
+            transform: translateY(-8px) scale(1.03);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* --- 移动端瀑布流布局 (Mobile Waterfall Layout) --- */
+        @media (max-width: 768px) {
+            .marquee-container { mask-image: none; }
+            .marquee-track {
+                flex-direction: column;
+                animation: none;
+                width: 100%;
+                align-items: center;
+            }
+            .work-card {
+                width: 90%;
+                height: auto;
+                aspect-ratio: 16 / 9;
+                margin: 15px 0;
+            }
+            .section-title { font-size: 2rem; }
+        }
+
+        /* --- 滚动动画 (Scrolling Animation) --- */
+        @keyframes scroll {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+        }
+
+        /* --- 弹窗样式 (Modal Styles) --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s 0.3s, opacity 0.3s;
+        }
+        .modal-overlay.visible {
+            visibility: visible;
+            opacity: 1;
+            transition: visibility 0s, opacity 0.3s;
+        }
+        .modal-content {
+            background-color: var(--surface-color);
+            padding: 2rem;
+            border-radius: 24px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 50px rgba(0,0,0,0.5);
+        }
+        .modal-close {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            font-size: 2rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: color 0.3s;
+        }
+        .modal-close:hover { color: var(--text-primary); }
+        .modal-content h2 { margin-top: 0; font-size: 1.8rem; }
+        
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: #2c2c2e;
+            color: var(--text-primary);
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+        .form-group .char-counter {
+            font-size: 0.8em;
+            color: var(--text-secondary);
+            text-align: right;
+            margin-top: 0.25rem;
+        }
+
+        .modal-actions { display: flex; justify-content: flex-end; gap: 1rem; }
+        .modal-btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background: var(--brand-orange);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(255, 106, 0, 0.5);
+        }
+        .btn-primary:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .btn-secondary {
+            background: var(--surface-color);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        .btn-secondary:hover { background-color: #333; }
+
+        /* --- 作品详情弹窗 (Detail Modal Specifics) --- */
+        #detailModal .work-image-large {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            object-fit: contain;
+            border-radius: 16px;
+            margin-bottom: 1.5rem;
+        }
+        #detailModal .work-info p { margin: 0.5rem 0; font-size: 1.1rem; }
+        #detailModal .work-info .prompt-text {
+            background-color: #2c2c2e;
+            padding: 1rem;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin-top: 1rem;
+            font-family: monospace;
+            border: 1px solid var(--border-color);
+        }
+
+        /* --- 轻提示 (Toast Notification) --- */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--surface-color);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            border: 1px solid var(--border-color);
+            z-index: 3000;
+            opacity: 0;
+            transition: all 0.5s ease;
+            visibility: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+        }
+        .toast.show {
+            top: 40px;
+            opacity: 1;
+            visibility: visible;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="header-title">
+            <span id="online-count">1024</span> 人正在云栖大会创作
+        </div>
+        <button class="upload-btn" id="uploadBtn">上传作品</button>
+    </header>
+
+    <main class="main-content">
+        <h1 class="section-title">最新作品</h1>
+        <div class="marquee-container" id="latest-works">
+            <div class="marquee-track"></div>
+        </div>
+
+        <h1 class="section-title">热门作品</h1>
+        <div class="marquee-container" id="popular-works-1">
+            <div class="marquee-track reverse"></div>
+        </div>
+        
+        <div class="marquee-container" id="popular-works-2">
+            <div class="marquee-track"></div>
+        </div>
+    </main>
+    
+    <div id="uploadModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h2>上传我的作品</h2>
+            <div class="form-group">
+                <label for="work-title">作品简述 (必填)</label>
+                <input type="text" id="work-title" name="title" maxlength="30">
+                <div class="char-counter">0 / 30</div>
+            </div>
+            <div class="form-group">
+                <label for="author-name">作者名 (必填)</label>
+                <input type="text" id="author-name" name="author" maxlength="15">
+                <div class="char-counter">0 / 15</div>
+            </div>
+            <div class="form-group">
+                <label for="prompt">Prompt (可选)</label>
+                <textarea id="prompt" name="prompt" rows="4" maxlength="300"></textarea>
+                <div class="char-counter">0 / 300</div>
+            </div>
+            <div class="form-group">
+                <label for="work-image">作品图片 (JPG/PNG, &lt;5MB)</label>
+                <input type="file" id="work-image" name="image" accept="image/jpeg, image/png">
+            </div>
+            <div class="modal-actions">
+                <button id="publishBtn" class="modal-btn btn-primary">发布</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="detailModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <img src="https://via.placeholder.com/1600x900" alt="作品大图" class="work-image-large">
+            <div class="work-info">
+                <h2 id="detail-title">作品简述占位符</h2>
+                <p><strong>作者:</strong> <span id="detail-author">作者名</span></p>
+                <p><strong>点赞数:</strong> <span id="detail-likes">128</span></p>
+                <p><strong>Prompt:</strong></p>
+                <div class="prompt-text" id="detail-prompt">一个赛博朋克风格的城市夜景，雨滴落在霓虹灯招牌上，反射出绚丽的光芒。</div>
+            </div>
+            <div class="modal-actions">
+                <button id="copyPromptBtn" class="modal-btn btn-secondary">复制Prompt</button>
+                <button id="likeBtn" class="modal-btn btn-primary">夸夸他</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-notification" class="toast"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const WORKS_PER_ROW = 10; // 定义每一行固定的作品数量
+            const UPDATE_INTERVAL = 60000; // 统一设置为60秒（1分钟）更新一次
+
+            // --- 模拟后端API ---
+            // 这是一个模拟函数，您需要用真实的API请求替换它。
+            // 它返回一个包含作品对象的数组。
+            async function mockFetchWorks(sortBy = 'createdAt', limit = 10) {
+                console.log(`Fetching works, sorted by ${sortBy}...`);
+                const demoImagePool = [
+                    "https://images.unsplash.com/photo-1678107353913-c6d51375d8d0?w=800&q=80",
+                    "https://images.unsplash.com/photo-1679083216832-683a936a57d0?w=800&q=80",
+                    "https://images.unsplash.com/photo-1679482139042-49122588390c?w=800&q=80",
+                    "https://images.unsplash.com/photo-1678096338423-9366e66e2a2a?w=800&q=80",
+                    "https://images.unsplash.com/photo-1678833444073-f1afe39e3b56?w=800&q=80",
+                    "https://images.unsplash.com/photo-1679083216584-6a97b2e3e57f?w=800&q=80",
+                    "https://images.unsplash.com/photo-1679083216531-89d70104a37b?w=800&q=80",
+                    "https://images.unsplash.com/photo-1678733792019-90691b0b75a1?w=800&q=80",
+                    "https://images.unsplash.com/photo-1679083216857-e3f2824e8d02?w=800&q=80",
+                    "https://images.unsplash.com/photo-1678096338521-1e289381283d?w=800&q=80"
+                ];
+                // 模拟数据变化
+                const works = Array.from({ length: limit }, (_, i) => ({
+                    id: `${sortBy}-${Date.now()}-${i}`,
+                    title: `作品标题 ${i + 1}`,
+                    author: `作者 ${String.fromCharCode(65 + i)}`,
+                    prompt: `这是一个模拟的prompt，随机数: ${Math.random()}`,
+                    imageUrl: demoImagePool[Math.floor(Math.random() * demoImagePool.length)], // 随机取一张图
+                    likeCount: Math.floor(Math.random() * 200)
+                }));
+                return works;
+            }
+
+            // --- 核心更新函数 ---
+            function populateMarquee(containerId, worksData) {
+                const track = document.querySelector(`#${containerId} .marquee-track`);
+                if (!track) return;
+                
+                // 保证数据不多于规定数量
+                const displayWorks = worksData.slice(0, WORKS_PER_ROW);
+
+                // 为了无缝滚动，复制一份数据
+                const combinedWorks = [...displayWorks, ...displayWorks];
+                
+                track.innerHTML = ''; // 清空旧内容
+                combinedWorks.forEach(work => {
+                    const card = document.createElement('a');
+                    card.className = 'work-card';
+                    card.href = "javascript:void(0)";
+                    const img = document.createElement('img');
+                    img.src = work.imageUrl;
+                    img.loading = 'lazy';
+                    card.appendChild(img);
+                    // 点击卡片显示详情（此处为简化版）
+                    card.addEventListener('click', () => {
+                         document.getElementById('detailModal').classList.add('visible');
+                         // 您可以在这里填充更详细的作品数据到详情弹窗中
+                    });
+                    track.appendChild(card);
+                });
+            }
+            
+            // --- 定时获取并刷新所有数据 ---
+            async function fetchAllDataAndUpdateUI() {
+                try {
+                    // 获取最新作品数据并更新UI
+                    const latestWorks = await mockFetchWorks('createdAt', WORKS_PER_ROW);
+                    populateMarquee('latest-works', latestWorks);
+
+                    // 获取热门作品数据并更新UI (分两行展示)
+                    const popularWorks = await mockFetchWorks('likeCount', WORKS_PER_ROW * 2);
+                    populateMarquee('popular-works-1', popularWorks.slice(0, WORKS_PER_ROW));
+                    populateMarquee('popular-works-2', popularWorks.slice(WORKS_PER_ROW, WORKS_PER_ROW * 2));
+
+                } catch (error) {
+                    console.error("更新数据失败:", error);
+                }
+            }
+            
+            // --- 初始化和定时器 ---
+            // 1. 页面加载后立即执行一次，避免页面空白
+            fetchAllDataAndUpdateUI(); 
+            
+            // 2. 设置定时器，按照您希望的频率重复执行
+            setInterval(fetchAllDataAndUpdateUI, UPDATE_INTERVAL);
+            
+            // --- 其他UI逻辑 (弹窗, 计数器等) ---
+            // PRD 2.3: 模拟在线人数
+            const onlineCountEl = document.getElementById('online-count');
+            let currentCount = 1024;
+            setInterval(() => {
+                currentCount += Math.floor(Math.random() * 5) + 1;
+                onlineCountEl.textContent = currentCount;
+            }, 10000);
+
+            // PRD 2.1 & 2.2: 弹窗处理
+            const uploadBtn = document.getElementById('uploadBtn');
+            const uploadModal = document.getElementById('uploadModal');
+            const detailModal = document.getElementById('detailModal');
+            
+            function setupModal(modalId) {
+                const modal = document.getElementById(modalId);
+                const closeBtn = modal.querySelector('.modal-close');
+                closeBtn.addEventListener('click', () => modal.classList.remove('visible'));
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) modal.classList.remove('visible');
+                });
+            }
+            setupModal('uploadModal');
+            setupModal('detailModal');
+            
+            uploadBtn.addEventListener('click', () => uploadModal.classList.add('visible'));
+
+            // PRD 2.3: 互动与轻提示
+            const toastEl = document.getElementById('toast-notification');
+            function showToast(message) {
+                toastEl.textContent = message;
+                toastEl.classList.add('show');
+                setTimeout(() => {
+                    toastEl.classList.remove('show');
+                }, 3000);
+            }
+            
+            const publishBtn = document.getElementById('publishBtn');
+            publishBtn.addEventListener('click', () => {
+                publishBtn.textContent = '发布中...';
+                publishBtn.disabled = true;
+                // 模拟后端请求
+                setTimeout(() => {
+                    uploadModal.classList.remove('visible');
+                    showToast('作品已提交审核，请耐心等待！');
+                    publishBtn.textContent = '发布';
+                    publishBtn.disabled = false;
+                }, 1500);
+            });
+            
+            document.getElementById('copyPromptBtn').addEventListener('click', function() {
+                const promptText = document.getElementById('detail-prompt').textContent;
+                navigator.clipboard.writeText(promptText).then(() => {
+                    this.textContent = '已复制!';
+                    showToast('复制成功');
+                    setTimeout(() => { this.textContent = '复制Prompt'; }, 2000);
+                });
+            });
+
+            // PRD 2.1: 字符计数器
+            function setupCharCounter(inputId) {
+                const input = document.getElementById(inputId);
+                const counter = input.parentElement.querySelector('.char-counter');
+                const max = input.maxLength;
+                input.addEventListener('input', () => {
+                    counter.textContent = `${input.value.length} / ${max}`;
+                });
+            }
+            setupCharCounter('work-title');
+            setupCharCounter('author-name');
+            setupCharCounter('prompt');
+        });
+    </script>
+</body>
+</html>

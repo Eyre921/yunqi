@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数字化作品互动展示平台 (定时更新版)</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-title">
+            <span id="online-count">1024</span> 人正在云栖大会创作
+        </div>
+        <button class="upload-btn" id="uploadBtn">上传作品</button>
+    </header>
+
+    <main class="main-content">
+        <h1 class="section-title">最新作品</h1>
+        <div class="marquee-container" id="latest-works">
+            <div class="marquee-track"></div>
+        </div>
+
+        <h1 class="section-title">热门作品</h1>
+        <div class="marquee-container" id="popular-works-1">
+            <div class="marquee-track reverse"></div>
+        </div>
+        
+        <div class="marquee-container" id="popular-works-2">
+            <div class="marquee-track"></div>
+        </div>
+    </main>
+    
+    <div id="uploadModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h2>上传我的作品</h2>
+            <div class="form-group">
+                <label for="work-title">作品简述 (必填)</label>
+                <input type="text" id="work-title" name="title" maxlength="30">
+                <div class="char-counter">0 / 30</div>
+            </div>
+            <div class="form-group">
+                <label for="author-name">作者名 (必填)</label>
+                <input type="text" id="author-name" name="author" maxlength="15">
+                <div class="char-counter">0 / 15</div>
+            </div>
+            <div class="form-group">
+                <label for="prompt">Prompt (可选)</label>
+                <textarea id="prompt" name="prompt" rows="4" maxlength="300"></textarea>
+                <div class="char-counter">0 / 300</div>
+            </div>
+            <div class="form-group">
+                <label for="work-image">作品图片 (JPG/PNG, &lt;5MB)</label>
+                <input type="file" id="work-image" name="image" accept="image/jpeg, image/png">
+            </div>
+            <div class="modal-actions">
+                <button id="publishBtn" class="modal-btn btn-primary">发布</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="detailModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <img src="https://via.placeholder.com/1600x900" alt="作品大图" class="work-image-large">
+            <div class="work-info">
+                <h2 id="detail-title">作品简述占位符</h2>
+                <p><strong>作者:</strong> <span id="detail-author">作者名</span></p>
+                <p><strong>点赞数:</strong> <span id="detail-likes">128</span></p>
+                <p><strong>Prompt:</strong></p>
+                <div class="prompt-text" id="detail-prompt">一个赛博朋克风格的城市夜景，雨滴落在霓虹灯招牌上，反射出绚丽的光芒。</div>
+            </div>
+            <div class="modal-actions">
+                <button id="copyPromptBtn" class="modal-btn btn-secondary">复制Prompt</button>
+                <button id="likeBtn" class="modal-btn btn-primary">夸夸他</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-notification" class="toast"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>

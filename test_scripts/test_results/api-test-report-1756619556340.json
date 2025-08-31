@@ -1,0 +1,228 @@
+{
+  "summary": {
+    "totalTests": 7,
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0,
+    "totalDuration": 3673,
+    "timestamp": "2025-08-31T05:52:36.340Z"
+  },
+  "results": [
+    {
+      "testName": "数据库连接测试",
+      "status": "PASS",
+      "duration": 86,
+      "details": {
+        "connected": true,
+        "adminUser": {
+          "id": "cmez76bud0000ghv5r2dc3aoo",
+          "email": "admin@yunqi.com",
+          "name": "系统管理员"
+        }
+      },
+      "timestamp": "2025-08-31T05:52:32.663Z"
+    },
+    {
+      "testName": "健康检查测试",
+      "status": "PASS",
+      "duration": 235,
+      "details": {
+        "success": true,
+        "message": "API服务正常",
+        "timestamp": "2025-08-31T05:52:32.982Z",
+        "database": "connected"
+      },
+      "timestamp": "2025-08-31T05:52:32.750Z"
+    },
+    {
+      "testName": "用户登录测试",
+      "status": "PASS",
+      "duration": 2565,
+      "details": {
+        "loginStatus": 200,
+        "sessionData": {
+          "user": {
+            "name": "系统管理员",
+            "email": "admin@yunqi.com",
+            "id": "cmez76bud0000ghv5r2dc3aoo",
+            "role": "ADMIN"
+          },
+          "expires": "2025-09-30T05:52:35.549Z"
+        },
+        "cookieSet": true,
+        "user": {
+          "name": "系统管理员",
+          "email": "admin@yunqi.com",
+          "id": "cmez76bud0000ghv5r2dc3aoo",
+          "role": "ADMIN"
+        }
+      },
+      "timestamp": "2025-08-31T05:52:32.986Z"
+    },
+    {
+      "testName": "用户管理API测试",
+      "status": "PASS",
+      "duration": 213,
+      "details": {
+        "status": 200,
+        "userCount": 0,
+        "hasData": false
+      },
+      "timestamp": "2025-08-31T05:52:35.551Z"
+    },
+    {
+      "testName": "统计API测试",
+      "status": "PASS",
+      "duration": 420,
+      "details": {
+        "status": 200,
+        "hasStats": true,
+        "stats": {
+          "overview": {
+            "totalUsers": 1,
+            "totalWorks": 30,
+            "pendingWorks": 0,
+            "approvedWorks": 30,
+            "rejectedWorks": 0,
+            "recentUsers": 1,
+            "recentWorks": 30
+          },
+          "charts": {
+            "dailyWorks": [
+              {
+                "date": "2025-08-31T00:00:00.000Z",
+                "count": 30,
+                "type": "works"
+              }
+            ],
+            "dailyUsers": [
+              {
+                "date": "2025-08-31T00:00:00.000Z",
+                "count": 1,
+                "type": "users"
+              }
+            ]
+          },
+          "lists": {
+            "popularWorks": [
+              {
+                "id": "cmez77p6v000u13zma6wkf647",
+                "name": "数字作品30",
+                "title": "极具创意的概念设计",
+                "author": "孙创作者",
+                "createdAt": "2025-08-31T04:36:35.528Z",
+                "user": null
+              },
+              {
+                "id": "cmez77p6u000t13zm4srmad24",
+                "name": "数字作品29",
+                "title": "色彩斑斓的视觉盛宴",
+                "author": "吴设计师",
+                "createdAt": "2025-08-31T04:36:35.526Z",
+                "user": null
+              },
+              {
+                "id": "cmez77p6t000s13zm7xi1qgxq",
+                "name": "数字作品28",
+                "title": "独特风格的数字绘画",
+                "author": "赵设计",
+                "createdAt": "2025-08-31T04:36:35.525Z",
+                "user": null
+              },
+              {
+                "id": "cmez77p6r000r13zmptlekfux",
+                "name": "数字作品27",
+                "title": "极具创意的概念设计",
+                "author": "钱艺术家",
+                "createdAt": "2025-08-31T04:36:35.524Z",
+                "user": null
+              },
+              {
+                "id": "cmez77p6q000q13zmfth8aflf",
+                "name": "数字作品26",
+                "title": "现代科技与传统文化的融合",
+                "author": "刘画家",
+                "createdAt": "2025-08-31T04:36:35.523Z",
+                "user": null
+              },
+              {
+                "id": "cmez77p6p000p13zmiqa4at9r",
+                "name": "数字作品25",
+                "title": "极具创意的概念设计",
+                "author": "孙创作者",
+                "createdAt": "2025-08-31T04:36:35.522Z",
+                "user": null
+              },
+              {
+                "id": "cmez77p6o000o13zm9lixujmi",
+                "name": "数字作品24",
+                "title": "独特风格的数字绘画",
+                "author": "陈创意",
+                "createdAt": "2025-08-31T04:36:35.521Z",
+                "user": null
+              },
+              {
+                "id": "cmez77p6n000n13zmxf5ylx6y",
+                "name": "数字作品23",
+                "title": "富有诗意的艺术表达",
+                "author": "孙创作者",
+                "createdAt": "2025-08-31T04:36:35.519Z",
+                "user": null
+              },
+              {
+                "id": "cmez77p6l000m13zm5yp592ip",
+                "name": "数字作品22",
+                "title": "前卫的视觉艺术作品",
+                "author": "赵设计",
+                "createdAt": "2025-08-31T04:36:35.518Z",
+                "user": null
+              },
+              {
+                "id": "cmez77p6k000l13zmei9jii2s",
+                "name": "数字作品21",
+                "title": "充满想象力的数字艺术创作",
+                "author": "郑艺术",
+                "createdAt": "2025-08-31T04:36:35.517Z",
+                "user": null
+              }
+            ],
+            "activeUsers": [
+              {
+                "id": "cmez76bud0000ghv5r2dc3aoo",
+                "name": "系统管理员",
+                "email": "admin@yunqi.com",
+                "createdAt": "2025-08-31T04:35:31.574Z",
+                "_count": {
+                  "works": 0
+                }
+              }
+            ]
+          }
+        }
+      },
+      "timestamp": "2025-08-31T05:52:35.765Z"
+    },
+    {
+      "testName": "作品管理API测试",
+      "status": "PASS",
+      "duration": 127,
+      "details": {
+        "status": 200,
+        "workCount": 0,
+        "hasData": false
+      },
+      "timestamp": "2025-08-31T05:52:36.185Z"
+    },
+    {
+      "testName": "未授权访问测试",
+      "status": "PASS",
+      "duration": 27,
+      "details": {
+        "status": 403,
+        "properlyBlocked": true,
+        "message": "正确阻止了未授权访问"
+      },
+      "timestamp": "2025-08-31T05:52:36.312Z"
+    }
+  ]
+}

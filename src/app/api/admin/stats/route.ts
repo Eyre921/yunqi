@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
       GROUP BY DATE("createdAt")
       ORDER BY date DESC
       LIMIT 30
-    `;
+    ` as Array<{ date: Date; count: bigint; type: string }>;
 
     const dailyUserStats = await prisma.$queryRaw`
       SELECT 
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
       GROUP BY DATE("createdAt")
       ORDER BY date DESC
       LIMIT 30
-    `;
+    ` as Array<{ date: Date; count: bigint; type: string }>;
 
     // 获取热门作品（按创建时间排序的最新审核通过作品）
     const popularWorks = await prisma.work.findMany({
@@ -123,17 +123,23 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         overview: {
-          totalUsers,
-          totalWorks,
-          pendingWorks,
-          approvedWorks,
-          rejectedWorks,
-          recentUsers,
-          recentWorks
+          totalUsers: Number(totalUsers),
+          totalWorks: Number(totalWorks),
+          pendingWorks: Number(pendingWorks),
+          approvedWorks: Number(approvedWorks),
+          rejectedWorks: Number(rejectedWorks),
+          recentUsers: Number(recentUsers),
+          recentWorks: Number(recentWorks)
         },
         charts: {
-          dailyWorks: dailyStats,
-          dailyUsers: dailyUserStats
+          dailyWorks: dailyStats.map(item => ({
+            ...item,
+            count: Number(item.count)
+          })),
+          dailyUsers: dailyUserStats.map(item => ({
+            ...item,
+            count: Number(item.count)
+          }))
         },
         lists: {
           popularWorks,

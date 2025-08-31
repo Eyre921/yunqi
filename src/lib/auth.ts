@@ -20,21 +20,19 @@ export const authOptions: NextAuthOptions = {
         }
 
         const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email
-          }
+          where: { email: credentials.email }
         });
 
         if (!user || !user.password) {
           return null;
         }
 
-        const isPasswordValid = await bcrypt.compare(
+        const isValidPassword = await bcrypt.compare(
           credentials.password,
           user.password
         );
 
-        if (!isPasswordValid) {
+        if (!isValidPassword) {
           return null;
         }
 
@@ -60,13 +58,13 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (token) {
         session.user.id = token.sub!;
-        session.user.role = token.role as Role; // 改为 Role 类型
+        session.user.role = token.role as Role;
       }
       return session;
     }
   },
   pages: {
-    signIn: '/auth/signin',
+    signIn: '/auth/signin', // 修改为前端登录页面路径
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

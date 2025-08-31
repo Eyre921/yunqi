@@ -5,15 +5,16 @@ module.exports = {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       animation: {
-        'scroll': 'scroll 20s linear infinite',
-        'pause': 'scroll 20s linear infinite paused',
+        'marquee': 'marquee 30s linear infinite',
+        'marquee-reverse': 'marquee 30s linear infinite reverse',
       },
       keyframes: {
-        scroll: {
-          '0%': { transform: 'translateX(0)' },
+        marquee: {
+          '0%': { transform: 'translateX(0%)' },
           '100%': { transform: 'translateX(-50%)' },
         },
       },

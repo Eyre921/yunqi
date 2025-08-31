@@ -1,23 +1,30 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-//   output: 'standalone',
+  // output: 'standalone',
+  
+  // 图片配置
   images: {
     unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
         hostname: '**'
-      },
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
+      }
     ],
   },
-  // 支持大文件上传
-  experimental: {
-    serverComponentsExternalPackages: ['sharp'],
+  
+  // 外部包配置（Next.js 15 新语法）
+  serverExternalPackages: ['bcryptjs'],
+  
+  // TypeScript 配置
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+  
+  // ESLint 配置
+  eslint: {
+    ignoreDuringBuilds: false,
   },
 };
 

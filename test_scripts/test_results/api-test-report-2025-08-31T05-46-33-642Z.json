@@ -1,0 +1,97 @@
+{
+  "suiteName": "API Test Suite",
+  "startTime": "2025-08-31T05:46:31.265Z",
+  "endTime": "2025-08-31T05:46:33.642Z",
+  "totalDuration": 2377,
+  "totalTests": 7,
+  "passed": 3,
+  "failed": 4,
+  "skipped": 0,
+  "tests": [
+    {
+      "testName": "数据库连接测试",
+      "status": "PASS",
+      "duration": 348,
+      "timestamp": "2025-08-31T05:46:31.268Z",
+      "details": {
+        "userId": "cmez76bud0000ghv5r2dc3aoo",
+        "email": "admin@yunqi.com",
+        "role": "ADMIN",
+        "passwordValid": true
+      }
+    },
+    {
+      "testName": "健康检查测试",
+      "status": "PASS",
+      "duration": 235,
+      "timestamp": "2025-08-31T05:46:31.616Z",
+      "details": {
+        "status": 200,
+        "data": {
+          "success": true,
+          "message": "API服务正常",
+          "timestamp": "2025-08-31T05:46:31.847Z",
+          "database": "connected"
+        }
+      }
+    },
+    {
+      "testName": "用户登录测试",
+      "status": "FAIL",
+      "duration": 1305,
+      "timestamp": "2025-08-31T05:46:31.851Z",
+      "error": "会话建立失败"
+    },
+    {
+      "testName": "用户管理API测试",
+      "status": "FAIL",
+      "duration": 127,
+      "timestamp": "2025-08-31T05:46:33.156Z",
+      "error": "Request failed with status code 403",
+      "details": {
+        "success": false,
+        "error": "权限不足",
+        "code": "FORBIDDEN"
+      }
+    },
+    {
+      "testName": "统计API测试",
+      "status": "FAIL",
+      "duration": 229,
+      "timestamp": "2025-08-31T05:46:33.283Z",
+      "error": "Request failed with status code 403",
+      "details": {
+        "success": false,
+        "error": "权限不足",
+        "code": "FORBIDDEN"
+      }
+    },
+    {
+      "testName": "作品管理API测试",
+      "status": "FAIL",
+      "duration": 118,
+      "timestamp": "2025-08-31T05:46:33.512Z",
+      "error": "Request failed with status code 403",
+      "details": {
+        "success": false,
+        "error": "权限不足",
+        "code": "FORBIDDEN"
+      }
+    },
+    {
+      "testName": "未授权访问测试",
+      "status": "PASS",
+      "duration": 12,
+      "timestamp": "2025-08-31T05:46:33.630Z",
+      "details": {
+        "status": 403,
+        "message": "正确拒绝未授权访问"
+      }
+    }
+  ],
+  "environment": {
+    "nodeVersion": "v22.14.0",
+    "platform": "win32",
+    "baseURL": "http://localhost:3000"
+  }
+}

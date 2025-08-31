@@ -1,10 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import WorkCard from '@/components/WorkCard';
 import WorkMarquee from '@/components/WorkMarquee';
 import WorkModal from '@/components/WorkModal';
+import ThemeToggle from '@/components/ThemeToggle';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import ErrorMessage from '@/components/ErrorMessage';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import { useApi } from '@/hooks/useApi';
 import { Work } from '@prisma/client';
 
+// 扩展 Work 类型以包含用户信息
 type WorkWithUser = Work & {
   user?: {
     id: string;
@@ -13,198 +21,357 @@ type WorkWithUser = Work & {
   };
 };
 
+// 上传配置类型
+type UploadConfig = {
+  id: string;
+  isEnabled: boolean;
+  startTime: string | null;
+  endTime: string | null;
+  maxUploadsPerUser: number;
+  maxFileSize: number;
+  allowedFormats: string[];
+  announcement: string | null;
+  createdAt: string;
+};
+
 export default function HomePage() {
-  const [latestWorks, setLatestWorks] = useState<WorkWithUser[]>([]);
-  const [popularWorks, setPopularWorks] = useState<WorkWithUser[]>([]);
+  const { data: session, status } = useSession();
+  const [works, setWorks] = useState<WorkWithUser[]>([]);
   const [selectedWork, setSelectedWork] = useState<WorkWithUser | null>(null);
-  const [onlineCount, setOnlineCount] = useState(1024);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // 模拟在线人数变化
+  const [uploadConfig, setUploadConfig] = useState<UploadConfig | null>(null);
+  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+  const [isAnnouncementClosed, setIsAnnouncementClosed] = useState(false);
+  const { data, loading, error, execute } = useApi<WorkWithUser[]>();
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      setOnlineCount(prev => {
-        const change = Math.floor(Math.random() * 10) - 4; // -4 到 +5 的变化
-        return Math.max(800, prev + change); // 最少保持800人在线
-      });
-    }, 15000); // 每15秒更新一次
-    
-    return () => clearInterval(interval);
-  }, []);
-  
-  // 获取作品数据
-  useEffect(() => {
-    const fetchWorks = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // 获取最新作品
-        const worksResponse = await fetch('/api/works?status=APPROVED&limit=20');
-        if (!worksResponse.ok) {
-          throw new Error('获取作品数据失败');
-        }
-        
-        const worksData = await worksResponse.json();
-        const works = worksData.works || [];
-        
-        // 分配作品到不同的展示区域
-        setLatestWorks(works.slice(0, 10));
-        setPopularWorks(works.slice(5, 25)); // 取一部分重叠，模拟热门作品
-        
-      } catch (error) {
-        console.error('获取作品数据失败:', error);
-        setError(error instanceof Error ? error.message : '获取数据失败');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchWorks();
+    fetchUploadConfig();
   }, []);
-  
-  // 将热门作品分成多行
-  const popularRows = [];
-  const worksPerRow = 8;
-  for (let i = 0; i < popularWorks.length; i += worksPerRow) {
-    popularRows.push(popularWorks.slice(i, i + worksPerRow));
-  }
-  
+
+  useEffect(() => {
+    if (data) {
+      setWorks(data);
+    }
+  }, [data]);
+
+  const fetchWorks = async () => {
+    await execute('/api/works');
+  };
+
+  const fetchUploadConfig = async () => {
+    try {
+      const response = await fetch('/api/admin/upload-config');
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setUploadConfig(result.data);
+        }
+      }
+    } catch (err) {
+      console.error('获取上传配置失败:', err);
+    }
+  };
+
+  const getUploadButtonStatus = () => {
+    if (!uploadConfig) {
+      return { disabled: true, text: '加载中...', reason: '正在加载配置' };
+    }
+
+    if (!uploadConfig.isEnabled) {
+      return { disabled: true, text: '上传已关闭', reason: '管理员已关闭上传功能' };
+    }
+
+    const now = new Date();
+    const startTime = uploadConfig.startTime ? new Date(uploadConfig.startTime) : null;
+    const endTime = uploadConfig.endTime ? new Date(uploadConfig.endTime) : null;
+
+    if (startTime && now < startTime) {
+      return { 
+        disabled: true, 
+        text: '上传未开始', 
+        reason: `上传将于 ${startTime.toLocaleString()} 开始` 
+      };
+    }
+
+    if (endTime && now > endTime) {
+      return { 
+        disabled: true, 
+        text: '上传已结束', 
+        reason: `上传已于 ${endTime.toLocaleString()} 结束` 
+      };
+    }
+
+    return { disabled: false, text: '上传作品', reason: null };
+  };
+
+  const handleUploadClick = () => {
+    const status = getUploadButtonStatus();
+    if (status.disabled) {
+      alert(status.reason || '当前无法上传作品');
+      return;
+    }
+    
+    // 跳转到上传页面或打开上传模态框
+    window.location.href = '/upload';
+  };
+
+  const handleWorkClick = (work: WorkWithUser) => {
+    setSelectedWork(work);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedWork(null);
+  };
+
+  const handleLike = async (workId: string) => {
+    try {
+      const response = await fetch(`/api/works/${workId}/like`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error('点赞失败');
+      }
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setWorks(prev => prev.map(work => 
+          work.id === workId 
+            ? { ...work, likeCount: work.likeCount + 1 }
+            : work
+        ));
+      }
+    } catch (err) {
+      console.error('点赞失败:', err);
+      // 这里可以添加用户友好的错误提示
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-300">加载中...</p>
-        </div>
+        <LoadingSpinner size="lg" text="正在加载作品..." />
       </div>
     );
   }
-  
+
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-4">😵</div>
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">加载失败</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            重新加载
-          </button>
-        </div>
+        <ErrorMessage 
+          message={error} 
+          onRetry={fetchWorks}
+          className="max-w-md"
+        />
       </div>
     );
   }
-  
+
+  const uploadButtonStatus = getUploadButtonStatus();
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
-      {/* 头部 */}
-      <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                🎨 云栖数字作品展示平台
-              </h1>
-            </div>
-            
-            <div className="flex items-center space-x-6 text-sm text-gray-600 dark:text-gray-300">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span>在线 {onlineCount.toLocaleString()} 人</span>
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
+        {/* 头部导航 */}
+        <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center">
+                <h1 className="text-2xl font-bold gradient-text">
+                  数字化作品展示平台
+                </h1>
               </div>
+              <div className="flex items-center space-x-4">
+                <ThemeToggle />
+                {session ? (
+                  <div className="flex items-center space-x-4">
+                    <div className="relative group">
+                      <button 
+                        className={`px-6 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
+                          uploadButtonStatus.disabled
+                            ? 'bg-gray-400 cursor-not-allowed text-white'
+                            : 'bg-green-600 hover:bg-green-700 text-white'
+                        }`}
+                        onClick={handleUploadClick}
+                        disabled={uploadButtonStatus.disabled}
+                        title={uploadButtonStatus.reason || undefined}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span>{uploadButtonStatus.text}</span>
+                      </button>
+                      {uploadButtonStatus.disabled && uploadButtonStatus.reason && (
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-50">
+                          {uploadButtonStatus.reason}
+                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <span className="text-gray-700 dark:text-gray-300">
+                      欢迎，{session.user?.name || session.user?.email}
+                    </span>
+                    {session.user?.role === 'ADMIN' && (
+                      <button 
+                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
+                        onClick={() => {
+                          window.location.href = '/admin';
+                        }}
+                      >
+                        管理后台
+                      </button>
+                    )}
+                    <button 
+                      className="text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100"
+                      onClick={() => {
+                        window.location.href = '/api/auth/signout';
+                      }}
+                    >
+                      退出登录
+                    </button>
+                  </div>
+                ) : (
+                  <button 
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+                    onClick={() => {
+                      window.location.href = '/auth/signin?callbackUrl=/';
+                    }}
+                  >
+                    登录
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* 公告展示区域 - 在标题下方单独一行 */}
+        {uploadConfig?.announcement && !isAnnouncementClosed && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2 flex-1">
+                  <span className="text-amber-600 dark:text-amber-400">📢</span>
+                  <button
+                    onClick={() => setShowAnnouncementModal(true)}
+                    className="text-amber-800 dark:text-amber-200 hover:text-amber-900 dark:hover:text-amber-100 transition-colors text-left flex-1 truncate"
+                  >
+                    <span className="font-medium">公告：</span>
+                    <span className="ml-1">{uploadConfig.announcement}</span>
+                  </button>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setShowAnnouncementModal(true)}
+                    className="text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition-colors"
+                    title="查看详情"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setIsAnnouncementClosed(true)}
+                    className="text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition-colors"
+                    title="关闭公告"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 主要内容 */}
+        <main className="relative">
+          {/* 作品轮播 */}
+          {works.length > 0 && (
+            <section className="py-8">
+              <WorkMarquee works={works} onWorkClick={handleWorkClick} />
+            </section>
+          )}
+
+          {/* 作品网格 */}
+          <section className="py-12">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <h2 className="text-3xl font-bold text-center mb-8 text-gray-900 dark:text-white">
+                精选作品
+              </h2>
               
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                上传作品
-              </button>
+              {works.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500 dark:text-gray-400 text-lg">
+                    暂无作品展示
+                  </p>
+                </div>
+              ) : (
+                <div className="responsive-grid">
+                  {works.map((work) => (
+                    <WorkCard
+                      key={work.id}
+                      work={work}
+                      onClick={() => handleWorkClick(work)}
+                      onLike={() => handleLike(work.id)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        </div>
-      </header>
-      
-      {/* 主内容 */}
-      <main className="space-y-12 py-8">
-        {/* 最新作品区域 */}
-        {latestWorks.length > 0 && (
-          <section>
-            <div className="text-center mb-8">
-              <h2 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">
-                🔥 最新作品
-              </h2>
-              <p className="text-gray-600 dark:text-gray-300">
-                发现最新的创意灵感
-              </p>
-            </div>
-            <WorkMarquee 
-              works={latestWorks} 
-              onWorkClick={setSelectedWork}
-              direction="left"
-              speed={25}
-            />
           </section>
-        )}
-        
-        {/* 热门作品区域 */}
-        {popularRows.length > 0 && (
-          <section>
-            <div className="text-center mb-8">
-              <h2 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">
-                ⭐ 热门作品
-              </h2>
-              <p className="text-gray-600 dark:text-gray-300">
-                社区最受欢迎的精选作品
-              </p>
-            </div>
-            
-            {popularRows.map((rowWorks, index) => (
-              <div key={index} className="mb-8">
-                <WorkMarquee 
-                  works={rowWorks} 
-                  onWorkClick={setSelectedWork}
-                  direction={index % 2 === 0 ? 'left' : 'right'}
-                  speed={30 + index * 2}
-                />
+        </main>
+
+        {/* 公告详情模态框 */}
+        {showAnnouncementModal && uploadConfig?.announcement && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                  <span className="text-amber-500 mr-2">📢</span>
+                  平台公告
+                </h3>
+                <button
+                  onClick={() => setShowAnnouncementModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-            ))}
-          </section>
-        )}
-        
-        {/* 空状态 */}
-        {latestWorks.length === 0 && popularWorks.length === 0 && (
-          <div className="text-center py-20">
-            <div className="text-8xl mb-4">🎨</div>
-            <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">
-              暂无作品
-            </h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-8">
-              成为第一个分享创意的人吧！
-            </p>
-            <button className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg">
-              上传第一个作品
-            </button>
+              <div className="p-6 overflow-y-auto">
+                <div className="prose dark:prose-invert max-w-none">
+                  <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                    {uploadConfig.announcement}
+                  </p>
+                </div>
+              </div>
+              <div className="flex justify-end p-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setShowAnnouncementModal(false)}
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  关闭
+                </button>
+              </div>
+            </div>
           </div>
         )}
-      </main>
-      
-      {/* 页脚 */}
-      <footer className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 mt-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center text-gray-600 dark:text-gray-300">
-            <p>© 2025 云栖数字作品展示平台 - 让创意无界流动</p>
-          </div>
-        </div>
-      </footer>
-      
-      {/* 作品详情弹窗 */}
-      <WorkModal
-        work={selectedWork}
-        isOpen={!!selectedWork}
-        onClose={() => setSelectedWork(null)}
-      />
-    </div>
+
+        {/* 作品详情模态框 */}
+        {selectedWork && (
+          <WorkModal
+            work={selectedWork}
+            isOpen={!!selectedWork}
+            onClose={handleCloseModal}
+            onLike={() => handleLike(selectedWork.id)}
+          />
+        )}
+      </div>
+    </ErrorBoundary>
   );
 }

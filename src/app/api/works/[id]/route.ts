@@ -5,9 +5,9 @@ import { prisma } from '@/lib/prisma';
 import { Role } from '@prisma/client';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 // GET /api/works/[id] - 获取单个作品
@@ -16,8 +16,9 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
+    const { id } = await params;
     const work = await prisma.work.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         user: {
           select: {
@@ -53,43 +54,58 @@ export async function PUT(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json(
         { error: '未授权访问' },
         { status: 401 }
       );
     }
 
-    const work = await prisma.work.findUnique({
-      where: { id: params.id }
+    const { id } = await params;
+    const body = await request.json();
+    // 添加 featured 字段支持
+    const { name, title, description, author, prompt, imageUrl, status, featured } = body;
+
+    // 检查作品是否存在
+    const existingWork = await prisma.work.findUnique({
+      where: { id }
     });
 
-    if (!work) {
+    if (!existingWork) {
       return NextResponse.json(
         { error: '作品不存在' },
         { status: 404 }
       );
     }
 
-    // 检查权限：只有作品所有者或管理员可以更新
-    if (work.userId !== session.user.id && session.user.role !== Role.ADMIN) {
+    // 检查权限：只有作品创建者或管理员可以更新
+    if (existingWork.userId !== session.user.id && session.user.role !== Role.ADMIN) {
       return NextResponse.json(
-        { error: '无权限更新此作品' },
+        { error: '权限不足' },
         { status: 403 }
       );
     }
 
-    const body = await request.json();
-    const { name, title, author, prompt, imageUrl } = body; // 修改这里
+    // 只有管理员可以设置精选状态
+    if (featured !== undefined && session.user.role !== Role.ADMIN) {
+      return NextResponse.json(
+        { error: '只有管理员可以设置精选状态' },
+        { status: 403 }
+      );
+    }
 
     const updatedWork = await prisma.work.update({
-      where: { id: params.id },
+      where: { id },
       data: {
-        name,     // 修改这里
-        title,    // 修改这里
-        author,   // 修改这里
-        prompt,   // 修改这里
-        imageUrl
+        // 只更新 Work 模型中存在的字段
+        ...(name && { name }),
+        ...(title && { title }),
+        ...(description !== undefined && { description }),
+        ...(author && { author }),
+        ...(prompt !== undefined && { prompt }),
+        ...(imageUrl && { imageUrl }),
+        ...(status && { status }),
+        ...(featured !== undefined && { featured })
       },
       include: {
         user: {
@@ -119,37 +135,43 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json(
         { error: '未授权访问' },
         { status: 401 }
       );
     }
 
-    const work = await prisma.work.findUnique({
-      where: { id: params.id }
+    const { id } = await params;
+
+    // 检查作品是否存在
+    const existingWork = await prisma.work.findUnique({
+      where: { id }
     });
 
-    if (!work) {
+    if (!existingWork) {
       return NextResponse.json(
         { error: '作品不存在' },
         { status: 404 }
       );
     }
 
-    // 检查权限：只有作品所有者或管理员可以删除
-    if (work.userId !== session.user.id && session.user.role !== Role.ADMIN) {
+    // 检查权限：只有作品创建者或管理员可以删除
+    if (existingWork.userId !== session.user.id && session.user.role !== Role.ADMIN) {
       return NextResponse.json(
-        { error: '无权限删除此作品' },
+        { error: '权限不足' },
         { status: 403 }
       );
     }
 
     await prisma.work.delete({
-      where: { id: params.id }
+      where: { id }
     });
 
-    return NextResponse.json({ message: '作品删除成功' });
+    return NextResponse.json(
+      { message: '作品删除成功' },
+      { status: 200 }
+    );
   } catch (error) {
     console.error('删除作品失败:', error);
     return NextResponse.json(

@@ -23,7 +23,7 @@ export default function WorkMarquee({
   direction = 'left',
   speed = 30 
 }: WorkMarqueeProps) {
-  const [isPaused, setIsPaused] = useState(false);
+  // 移除 isPaused 状态，因为我们将使用CSS来控制暂停
   
   // 确保有足够的作品进行无缝滚动
   const minWorksForScroll = 8;
@@ -48,20 +48,15 @@ export default function WorkMarquee({
       <div className="absolute left-0 top-0 w-20 h-full bg-gradient-to-r from-white dark:from-gray-900 to-transparent z-10 pointer-events-none" />
       <div className="absolute right-0 top-0 w-20 h-full bg-gradient-to-l from-white dark:from-gray-900 to-transparent z-10 pointer-events-none" />
       
-      <div 
-        className="relative"
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
-      >
+      <div className="relative">
         <div 
           className={`flex space-x-6 ${
-            isPaused ? '' : 'animate-marquee'
+            direction === 'right' ? 'animate-marquee-reverse' : 'animate-marquee'
           }`}
           style={{
             width: `${duplicatedWorks.length * 340}px`,
-            animationDuration: `${speed}s`,
-            animationDirection: direction === 'right' ? 'reverse' : 'normal'
-          }}
+            '--marquee-duration': `${speed}s`
+          } as React.CSSProperties}
         >
           {duplicatedWorks.map((work, index) => (
             <div key={`${work.id}-${index}`} className="flex-shrink-0 w-80">

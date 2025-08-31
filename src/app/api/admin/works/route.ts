@@ -10,7 +10,9 @@ const WorkQuerySchema = z.object({
   page: z.string().optional().transform(val => val ? parseInt(val) : 1),
   limit: z.string().optional().transform(val => val ? parseInt(val) : 10),
   status: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
-  search: z.string().optional()
+  search: z.string().optional(),
+  sortBy: z.enum(['createdAt', 'approvedAt', 'likeCount', 'viewCount']).optional().default('createdAt'),
+  sortOrder: z.enum(['asc', 'desc']).optional().default('desc')
 });
 
 // 获取作品列表（管理员视图）
@@ -40,6 +42,24 @@ export async function GET(request: NextRequest) {
       })
     };
 
+    // 构建排序条件
+    let orderBy: any;
+    switch (query.sortBy) {
+      case 'likeCount':
+        orderBy = { likeCount: query.sortOrder };
+        break;
+      case 'viewCount':
+        orderBy = { viewCount: query.sortOrder };
+        break;
+      case 'approvedAt':
+        orderBy = { approvedAt: query.sortOrder };
+        break;
+      case 'createdAt':
+      default:
+        orderBy = { createdAt: query.sortOrder };
+        break;
+    }
+
     const [works, total] = await Promise.all([
       prisma.work.findMany({
         where,
@@ -54,7 +74,7 @@ export async function GET(request: NextRequest) {
         },
         skip: (query.page - 1) * query.limit,
         take: query.limit,
-        orderBy: { createdAt: 'desc' }
+        orderBy
       }),
       prisma.work.count({ where })
     ]);
@@ -67,7 +87,7 @@ export async function GET(request: NextRequest) {
           page: query.page,
           limit: query.limit,
           total,
-          pages: Math.ceil(total / query.limit)
+          totalPages: Math.ceil(total / query.limit)
         }
       }
     });

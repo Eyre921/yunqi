@@ -14,14 +14,37 @@ interface WorkModalProps {
   }) | null;
   isOpen: boolean;
   onClose: () => void;
+  onLike?: () => void;
 }
 
-export default function WorkModal({ work, isOpen, onClose }: WorkModalProps) {
+export default function WorkModal({ work, isOpen, onClose, onLike }: WorkModalProps) {
   const [likeCount, setLikeCount] = useState(0);
   const [viewCount, setViewCount] = useState(0);
   const [isLiking, setIsLiking] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [imageError, setImageError] = useState(false);
+  
+  const handleLike = async () => {
+    if (isLiking || !work) return;
+    
+    setIsLiking(true);
+    try {
+      const response = await fetch(`/api/works/${work.id}/like`, {
+        method: 'POST',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setLikeCount(prev => prev + 1);
+          onLike?.(); // 通知父组件更新
+        }
+      }
+    } catch (error) {
+      console.error('点赞失败:', error);
+    } finally {
+      setIsLiking(false);
+    }
+  };
   
   useEffect(() => {
     if (work) {
@@ -57,26 +80,6 @@ export default function WorkModal({ work, isOpen, onClose }: WorkModalProps) {
   }, [isOpen]);
   
   if (!isOpen || !work) return null;
-  
-  const handleLike = async () => {
-    if (isLiking) return;
-    
-    setIsLiking(true);
-    try {
-      const response = await fetch(`/api/works/${work.id}/like`, {
-        method: 'POST',
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setLikeCount(data.likeCount || likeCount + 1);
-      }
-    } catch (error) {
-      console.error('点赞失败:', error);
-    } finally {
-      setTimeout(() => setIsLiking(false), 500);
-    }
-  };
   
   const handleCopyPrompt = async () => {
     if (!work.prompt) return;
@@ -149,6 +152,7 @@ export default function WorkModal({ work, isOpen, onClose }: WorkModalProps) {
             
             {/* 操作按钮 */}
             <div className="flex items-center space-x-4 ml-4">
+              {/* 点赞按钮 */}
               <button
                 onClick={handleLike}
                 disabled={isLiking}
@@ -162,11 +166,15 @@ export default function WorkModal({ work, isOpen, onClose }: WorkModalProps) {
                   {isLiking ? '💖' : '❤️'}
                 </span>
                 <span>{likeCount}</span>
+                {isLiking && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 ml-2"></div>}
               </button>
               
-              <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
-                <span>👁️</span>
-                <span>{viewCount}</span>
+              {/* 浏览量显示 */}
+              <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+                <span className="flex items-center">
+                  <span className="mr-1">👁️</span>
+                  {viewCount}
+                </span>
               </div>
             </div>
           </div>

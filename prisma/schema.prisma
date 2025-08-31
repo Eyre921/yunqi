@@ -22,9 +22,10 @@ model User {
   updatedAt DateTime @updatedAt
 
   // 关联
-  accounts Account[]
-  sessions Session[]
-  works    Work[]
+  accounts      Account[]
+  sessions      Session[]
+  works         Work[]
+  uploadConfigs UploadConfig[] @relation("UserUploadConfigs") // 创建的上传配置
 
   @@map("users")
 }
@@ -81,6 +82,7 @@ model Work {
   prompt      String?    // AI生成提示词
   imageUrl    String     // 图片URL
   status      WorkStatus @default(PENDING) // 审核状态
+  featured    Boolean    @default(false) // 精选标记
   likeCount   Int        @default(0) // 点赞数
   viewCount   Int        @default(0) // 浏览数
   isDeleted   Boolean    @default(false) // 软删除标记
@@ -95,6 +97,26 @@ model Work {
   user   User?  @relation(fields: [userId], references: [id])
 
   @@map("works")
+}
+
+// 上传作品配置模型
+model UploadConfig {
+  id                String   @id @default(cuid())
+  isEnabled         Boolean  @default(false)        // 上传功能开关
+  startTime         DateTime?                       // 上传开始时间
+  endTime           DateTime?                       // 上传结束时间
+  maxUploadsPerUser Int      @default(1)            // 每个用户最大上传数量
+  maxFileSize       Int      @default(10485760)     // 最大文件大小（字节，默认10MB）
+  allowedFormats    String[] @default(["jpg", "jpeg", "png", "gif"]) // 允许的文件格式
+  announcement      String?                         // 公告信息
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // 创建者
+  createdBy String?
+  creator   User?   @relation("UserUploadConfigs", fields: [createdBy], references: [id])
+
+  @@map("upload_configs")
 }
 
 // 枚举类型

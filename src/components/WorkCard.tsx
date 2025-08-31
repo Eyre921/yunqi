@@ -13,11 +13,17 @@ interface WorkCardProps {
     };
   };
   onClick?: () => void;
+  onLike?: () => void;
 }
 
-export default function WorkCard({ work, onClick }: WorkCardProps) {
+export default function WorkCard({ work, onClick, onLike }: WorkCardProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  
+  const handleLikeClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // 防止触发卡片点击事件
+    onLike?.();
+  };
   
   return (
     <div 
@@ -66,10 +72,14 @@ export default function WorkCard({ work, onClick }: WorkCardProps) {
         <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
           <span>by {work.author || work.user?.name || '匿名'}</span>
           <div className="flex items-center space-x-4">
-            <span className="flex items-center">
+            <button 
+              onClick={handleLikeClick}
+              className="flex items-center hover:text-red-500 transition-colors"
+              disabled={!onLike}
+            >
               <span className="mr-1">❤️</span>
               {work.likeCount || 0}
-            </span>
+            </button>
             <span className="flex items-center">
               <span className="mr-1">👁️</span>
               {work.viewCount || 0}

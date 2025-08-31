@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
       take: 10
     });
 
-    return NextResponse.json({
+    const stats = {
       success: true,
       data: {
         overview: {
@@ -146,7 +146,12 @@ export async function GET(request: NextRequest) {
           activeUsers
         }
       }
-    });
+    };
+
+    // 添加缓存头
+    const response = NextResponse.json(stats);
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+    return response;
   } catch (error) {
     console.error('获取统计数据失败:', error);
     return NextResponse.json({

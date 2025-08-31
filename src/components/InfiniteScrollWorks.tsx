@@ -142,14 +142,14 @@ export default function InfiniteScrollWorks({
         return (
           <div key={`row-${rowIndex}`} className="relative">
             {/* 行标题显示全局顺序信息 - 保持居中但不限制宽度 */}
-            <div className="text-center mb-4 px-4">
+            {/* <div className="text-center mb-4 px-4">
               <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
                 第 {rowIndex + 1} 行 (作品 {globalStartIndex + 1}-{globalStartIndex + rowWorks.length})
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 严格按照数据库顺序排列
               </p>
-            </div>
+            </div> */}
             
             {/* 跑马灯展示，保持作品在行内的顺序 */}
             <WorkMarquee 

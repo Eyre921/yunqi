@@ -213,9 +213,9 @@ export default function HomePage() {
               <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white">
                 ⭐ 热门作品
               </h2>
-              <p className="text-center text-gray-600 dark:text-gray-400 mt-2">
+              {/* <p className="text-center text-gray-600 dark:text-gray-400 mt-2">
                 每一行都以跑马灯形式展示，自动无限加载
-              </p>
+              </p> */}
             </div>
             
             {/* 热门作品也突破容器限制 */}

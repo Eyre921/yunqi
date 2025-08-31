@@ -1,159 +1,298 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    const WORKS_PER_ROW = 10; // 定义每一行固定的作品数量
-    const UPDATE_INTERVAL = 60000; // 统一设置为60秒（1分钟）更新一次
+    const WORKS_PER_ROW = 10; // 桌面端跑马灯每行基础作品数
+    const UPDATE_INTERVAL = 60000; // 数据更新间隔
 
     // --- 模拟后端API ---
-    // 这是一个模拟函数，您需要用真实的API请求替换它。
-    // 它返回一个包含作品对象的数组。
-    async function mockFetchWorks(sortBy = 'createdAt', limit = 10) {
-        console.log(`Fetching works, sorted by ${sortBy}...`);
-        const demoImagePool = [
-            "https://images.unsplash.com/photo-1678107353913-c6d51375d8d0?w=800&q=80",
-            "https://images.unsplash.com/photo-1679083216832-683a936a57d0?w=800&q=80",
-            "https://images.unsplash.com/photo-1679482139042-49122588390c?w=800&q=80",
-            "https://images.unsplash.com/photo-1678096338423-9366e66e2a2a?w=800&q=80",
-            "https://images.unsplash.com/photo-1678833444073-f1afe39e3b56?w=800&q=80",
-            "https://images.unsplash.com/photo-1679083216584-6a97b2e3e57f?w=800&q=80",
-            "https://images.unsplash.com/photo-1679083216531-89d70104a37b?w=800&q=80",
-            "https://images.unsplash.com/photo-1678733792019-90691b0b75a1?w=800&q=80",
-            "https://images.unsplash.com/photo-1679083216857-e3f2824e8d02?w=800&q=80",
-            "https://images.unsplash.com/photo-1678096338521-1e289381283d?w=800&q=80"
-        ];
-        // 模拟数据变化
-        const works = Array.from({ length: limit }, (_, i) => ({
-            id: `${sortBy}-${Date.now()}-${i}`,
-            title: `作品标题 ${i + 1}`,
-            author: `作者 ${String.fromCharCode(65 + i)}`,
-            prompt: `这是一个模拟的prompt，随机数: ${Math.random()}`,
-            imageUrl: demoImagePool[Math.floor(Math.random() * demoImagePool.length)], // 随机取一张图
-            likeCount: Math.floor(Math.random() * 200)
-        }));
+    async function mockFetchWorks(sortBy = 'createdAt', limit = 10, page = 1) {
+        console.log(`Fetching works, sorted by ${sortBy}, page ${page}, limit ${limit}...`);
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // 使用本地图片池
+        const localImagePool = [];
+        for (let i = 1; i <= 52; i++) {
+            const imageNumber = i.toString().padStart(3, '0');
+            localImagePool.push(`images/DM_20250831112136_${imageNumber}.PNG`);
+        }
+        
+        const titlePool = ["赛博朋克城市夜景", "梦幻森林仙境", "未来科技概念图", "抽象艺术创作", "古典建筑风光", "现代艺术装置", "自然风景摄影", "人物肖像画", "动物世界探索", "宇宙星空奇观", "海底世界冒险", "山川河流美景", "城市建筑群", "花卉植物特写", "科幻机器人", "魔幻奇幻世界", "复古怀旧风格", "极简主义设计", "色彩斑斓抽象", "黑白摄影艺术", "数字艺术创新", "传统文化元素", "现代时尚设计", "工业风格建筑", "田园乡村风光", "都市夜生活", "艺术雕塑作品", "创意平面设计", "手绘插画作品", "3D渲染艺术", "水彩画创作", "油画经典作品", "素描人物像", "版画艺术", "陶瓷工艺品", "金属雕塑", "玻璃艺术品", "纺织艺术", "珠宝设计", "家具设计", "建筑模型", "景观设计", "室内装饰", "服装设计", "产品设计", "UI界面设计", "品牌标识", "包装设计", "海报设计", "书籍装帧"];
+        const authorPool = ["张艺术", "李创意", "王设计", "赵画家", "陈摄影", "刘雕塑", "杨建筑", "周时尚", "吴数码", "郑传统", "孙现代", "朱抽象", "胡写实", "林印象", "何极简", "高复古", "梁科幻", "宋自然", "唐都市", "冯艺匠", "邓创客", "曹视觉", "彭色彩", "曾光影", "萧构图", "薛质感", "范美学", "雷灵感", "贺创新", "倪经典", "汤前卫", "滕实验", "殷概念", "罗表现", "毕技法", "郝风格", "邬主题", "安意境", "常节奏", "乐韵律", "于平衡", "时对比", "傅统一", "皮变化", "卞重点", "齐细节", "康整体", "伍局部", "余空间", "元层次", "卜深度", "顾广度", "孟高度", "平角度", "黄温度", "和湿度"];
+
+        const totalItems = 100;
+        const totalPages = Math.ceil(totalItems / limit);
+        if (page > totalPages) return [];
+
+        const startIndex = (page - 1) * limit;
+        const endIndex = Math.min(startIndex + limit, totalItems);
+        const actualLimit = endIndex - startIndex;
+
+        const works = Array.from({ length: actualLimit }, (_, i) => {
+            const globalIndex = startIndex + i;
+            return {
+                id: `${sortBy}-${page}-${Date.now()}-${i}`,
+                title: titlePool[globalIndex % titlePool.length],
+                author: authorPool[globalIndex % authorPool.length],
+                prompt: `这是第${globalIndex + 1}个${sortBy === 'popularity' ? '热门' : '最新'}作品的创作提示词。`,
+                imageUrl: localImagePool[globalIndex % localImagePool.length],
+                likeCount: Math.floor(Math.random() * 500) + (sortBy === 'popularity' ? 200 : 50) + globalIndex
+            };
+        });
         return works;
     }
 
-    // --- 核心更新函数 ---
-    function populateMarquee(containerId, worksData) {
+    // --- Layout Management ---
+    function setupLayout() {
+        const isMobile = window.innerWidth <= 768;
+        setupPopularWorks(isMobile);
+        populateLatestWorks(isMobile);
+    }
+
+    function populateLatestWorks(isMobile) {
+        mockFetchWorks('createdAt', 20).then(worksData => {
+            populateMarquee('latest-works', worksData, isMobile);
+        });
+    }
+
+    function setupPopularWorks(isMobile) {
+        const wrapper = document.getElementById('popular-works-wrapper');
+        if (!wrapper) return;
+
+        wrapper.innerHTML = '';
+        if (window.infiniteScrollObserver) {
+            window.infiniteScrollObserver.disconnect();
+        }
+
+        if (isMobile) {
+            // 移动端：网格布局 + 无限滚动
+            wrapper.innerHTML = `
+                <div class="popular-works-grid" id="popular-works-grid"></div>
+                <div class="loading-indicator" id="loading-indicator" style="display: none;">
+                    <div class="spinner"></div><p>加载更多作品中...</p>
+                </div>
+                <div class="no-more-content" id="no-more-content" style="display: none;">
+                    <p>已经到底了，没有更多作品了</p>
+                </div>`;
+            initInfiniteScroll();
+            loadPopularWorks(1, true);
+        } else {
+            // 桌面端：也使用无限滚动，但保持跑马灯样式
+            wrapper.innerHTML = `
+                <div class="popular-works-desktop-grid" id="popular-works-desktop-grid"></div>
+                <div class="loading-indicator" id="loading-indicator" style="display: none;">
+                    <div class="spinner"></div><p>加载更多作品中...</p>
+                </div>
+                <div class="no-more-content" id="no-more-content" style="display: none;">
+                    <p>已经到底了，没有更多作品了</p>
+                </div>`;
+            initInfiniteScroll();
+            loadPopularWorks(1, true);
+        }
+    }
+
+    // 修改 loadPopularWorks 函数以支持桌面端
+    async function loadPopularWorks(page = 1, isInitial = false) {
+        if (isLoading) return;
+        isLoading = true;
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const noMoreContent = document.getElementById('no-more-content');
+        if (loadingIndicator) loadingIndicator.style.display = 'flex';
+
+        try {
+            const works = await mockFetchWorks('popularity', ITEMS_PER_PAGE, page);
+            if (works.length === 0) {
+                hasMoreContent = false;
+                if (noMoreContent) noMoreContent.style.display = 'block';
+                return;
+            }
+            
+            // 根据设备类型选择不同的容器
+            const isMobile = window.innerWidth <= 768;
+            const grid = document.getElementById(isMobile ? 'popular-works-grid' : 'popular-works-desktop-grid');
+            if (!grid) return;
+            
+            if (isInitial) {
+                grid.innerHTML = '';
+                currentPage = 1;
+                hasMoreContent = true;
+                if (noMoreContent) noMoreContent.style.display = 'none';
+            }
+            
+            works.forEach(work => {
+                const card = createWorkCard(work, isMobile);
+                grid.appendChild(card);
+            });
+            
+            if (works.length < ITEMS_PER_PAGE) {
+                hasMoreContent = false;
+                if (noMoreContent) noMoreContent.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('加载热门作品失败:', error);
+            showToast('加载失败，请稍后重试');
+        } finally {
+            isLoading = false;
+            if (loadingIndicator) loadingIndicator.style.display = 'none';
+        }
+    }
+
+    function loadMorePopularWorks() {
+        currentPage++;
+        loadPopularWorks(currentPage, false);
+    }
+
+    // --- Marquee Population (Desktop) ---
+    function populateMarquee(containerId, worksData, isMobile) {
         const track = document.querySelector(`#${containerId} .marquee-track`);
         if (!track) return;
-        
-        // 保证数据不多于规定数量
-        const displayWorks = worksData.slice(0, WORKS_PER_ROW);
-
-        // 为了无缝滚动，复制一份数据
+        const displayWorks = worksData.slice(0, WORKS_PER_ROW * 2);
         const combinedWorks = [...displayWorks, ...displayWorks];
-        
-        track.innerHTML = ''; // 清空旧内容
+        track.innerHTML = '';
         combinedWorks.forEach(work => {
-            const card = document.createElement('a');
-            card.className = 'work-card';
-            card.href = "javascript:void(0)";
-            const img = document.createElement('img');
-            img.src = work.imageUrl;
-            img.loading = 'lazy';
-            card.appendChild(img);
-            // 点击卡片显示详情（此处为简化版）
-            card.addEventListener('click', () => {
-                 document.getElementById('detailModal').classList.add('visible');
-                 // 您可以在这里填充更详细的作品数据到详情弹窗中
-            });
+            const card = createWorkCard(work, isMobile);
             track.appendChild(card);
         });
     }
-    
-    // --- 定时获取并刷新所有数据 ---
-    async function fetchAllDataAndUpdateUI() {
-        try {
-            // 获取最新作品数据并更新UI
-            const latestWorks = await mockFetchWorks('createdAt', WORKS_PER_ROW);
-            populateMarquee('latest-works', latestWorks);
 
-            // 获取热门作品数据并更新UI (分两行展示)
-            const popularWorks = await mockFetchWorks('likeCount', WORKS_PER_ROW * 2);
-            populateMarquee('popular-works-1', popularWorks.slice(0, WORKS_PER_ROW));
-            populateMarquee('popular-works-2', popularWorks.slice(WORKS_PER_ROW, WORKS_PER_ROW * 2));
-
-        } catch (error) {
-            console.error("更新数据失败:", error);
+    // --- Generic Card Creation ---
+    function createWorkCard(work, isMobile) {
+        const card = document.createElement('a');
+        card.className = 'work-card';
+        card.href = "javascript:void(0)";
+        if (isMobile) {
+            card.innerHTML = `
+                <img src="${work.imageUrl}" alt="${work.title}" loading="lazy">
+                <div class="work-info">
+                    <h3 title="${work.title}">${work.title}</h3>
+                    <p title="by ${work.author} • ❤️ ${work.likeCount}">by ${work.author} • ❤️ ${work.likeCount}</p>
+                </div>`;
+        } else {
+            card.innerHTML = `<img src="${work.imageUrl}" alt="${work.title}" loading="lazy">`;
         }
+        card.addEventListener('click', () => showWorkDetail(work));
+        return card;
     }
-    
-    // --- 初始化和定时器 ---
-    // 1. 页面加载后立即执行一次，避免页面空白
-    fetchAllDataAndUpdateUI(); 
-    
-    // 2. 设置定时器，按照您希望的频率重复执行
-    setInterval(fetchAllDataAndUpdateUI, UPDATE_INTERVAL);
-    
-    // --- 其他UI逻辑 (弹窗, 计数器等) ---
-    // PRD 2.3: 模拟在线人数
-    const onlineCountEl = document.getElementById('online-count');
-    let currentCount = 1024;
-    setInterval(() => {
-        currentCount += Math.floor(Math.random() * 5) + 1;
-        onlineCountEl.textContent = currentCount;
-    }, 10000);
 
-    // PRD 2.1 & 2.2: 弹窗处理
-    const uploadBtn = document.getElementById('uploadBtn');
+    // --- Modals, Toasts, and other UI components ---
     const uploadModal = document.getElementById('uploadModal');
     const detailModal = document.getElementById('detailModal');
-    
-    function setupModal(modalId) {
-        const modal = document.getElementById(modalId);
-        const closeBtn = modal.querySelector('.modal-close');
-        closeBtn.addEventListener('click', () => modal.classList.remove('visible'));
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.classList.remove('visible');
-        });
-    }
-    setupModal('uploadModal');
-    setupModal('detailModal');
-    
-    uploadBtn.addEventListener('click', () => uploadModal.classList.add('visible'));
+    const uploadBtn = document.getElementById('uploadBtn');
+    const closeBtns = document.querySelectorAll('.modal-close');
+    const likeBtn = document.getElementById('likeBtn');
+    const copyPromptBtn = document.getElementById('copyPromptBtn');
 
-    // PRD 2.3: 互动与轻提示
-    const toastEl = document.getElementById('toast-notification');
-    function showToast(message) {
-        toastEl.textContent = message;
-        toastEl.classList.add('show');
-        setTimeout(() => {
-            toastEl.classList.remove('show');
-        }, 3000);
-    }
-    
-    const publishBtn = document.getElementById('publishBtn');
-    publishBtn.addEventListener('click', () => {
-        publishBtn.textContent = '发布中...';
-        publishBtn.disabled = true;
-        // 模拟后端请求
-        setTimeout(() => {
+    uploadBtn.onclick = () => uploadModal.classList.add('visible');
+    closeBtns.forEach(btn => {
+        btn.onclick = () => {
             uploadModal.classList.remove('visible');
-            showToast('作品已提交审核，请耐心等待！');
-            publishBtn.textContent = '发布';
-            publishBtn.disabled = false;
-        }, 1500);
+            detailModal.classList.remove('visible');
+        };
     });
+    window.onclick = (event) => {
+        if (event.target == uploadModal) uploadModal.classList.remove('visible');
+        if (event.target == detailModal) detailModal.classList.remove('visible');
+    };
     
-    document.getElementById('copyPromptBtn').addEventListener('click', function() {
-        const promptText = document.getElementById('detail-prompt').textContent;
-        navigator.clipboard.writeText(promptText).then(() => {
-            this.textContent = '已复制!';
-            showToast('复制成功');
-            setTimeout(() => { this.textContent = '复制Prompt'; }, 2000);
-        });
-    });
+    // 存储当前显示的作品数据
+    let currentWork = null;
+    
+    function showWorkDetail(work) {
+        currentWork = work; // 保存当前作品引用
+        document.getElementById('detail-title').textContent = work.title;
+        document.getElementById('detail-author').textContent = work.author;
+        document.getElementById('detail-likes').textContent = work.likeCount;
+        document.getElementById('detail-prompt').textContent = work.prompt;
+        document.querySelector('#detailModal .work-image-large').src = work.imageUrl;
+        detailModal.classList.add('visible');
+    }
+    
+    // 点赞功能
+    likeBtn.onclick = () => {
+        if (currentWork) {
+            // 随机增加1-10个点赞数
+            const randomLikes = Math.floor(Math.random() * 10) + 1;
+            currentWork.likeCount += randomLikes;
+            document.getElementById('detail-likes').textContent = currentWork.likeCount;
+            
+            // 更新页面上对应卡片的点赞数
+            const cards = document.querySelectorAll('.work-card');
+            cards.forEach(card => {
+                const cardInfo = card.querySelector('.work-info p');
+                if (cardInfo && cardInfo.textContent.includes(currentWork.author)) {
+                    cardInfo.textContent = `by ${currentWork.author} • ❤️ ${currentWork.likeCount}`;
+                    cardInfo.title = `by ${currentWork.author} • ❤️ ${currentWork.likeCount}`;
+                }
+            });
+            
+            // 根据随机数显示不同的提示信息
+            let message;
+            if (randomLikes >= 8) {
+                message = `哇！获得了 ${randomLikes} 个赞！作品太棒了！🎉`;
+            } else if (randomLikes >= 5) {
+                message = `太好了！获得了 ${randomLikes} 个赞！❤️`;
+            } else {
+                message = `点赞成功！+${randomLikes} 👍`;
+            }
+            showToast(message);
+        }
+    };
+    
+    // 复制Prompt功能
+    copyPromptBtn.onclick = () => {
+        if (currentWork) {
+            navigator.clipboard.writeText(currentWork.prompt).then(() => {
+                showToast('Prompt已复制到剪贴板');
+            }).catch(() => {
+                // 降级方案：使用传统方法复制
+                const textArea = document.createElement('textarea');
+                textArea.value = currentWork.prompt;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showToast('Prompt已复制到剪贴板');
+            });
+        }
+    };
 
-    // PRD 2.1: 字符计数器
-    function setupCharCounter(inputId) {
-        const input = document.getElementById(inputId);
-        const counter = input.parentElement.querySelector('.char-counter');
-        const max = input.maxLength;
-        input.addEventListener('input', () => {
-            counter.textContent = `${input.value.length} / ${max}`;
+    function showToast(message) {
+        const toast = document.getElementById('toast-notification');
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+    
+    function setupCharCounters() {
+        const fields = [
+            { id: 'work-name', max: 50 },
+            { id: 'work-title', max: 300 },
+            { id: 'author-name', max: 15 },
+            { id: 'prompt', max: 8000 }
+        ];
+        fields.forEach(field => {
+            const input = document.getElementById(field.id);
+            const counter = input.parentNode.querySelector('.char-counter');
+            if (input && counter) {
+                input.addEventListener('input', () => {
+                    const length = input.value.length;
+                    counter.textContent = `${length} / ${field.max}`;
+                });
+            }
         });
     }
-    setupCharCounter('work-title');
-    setupCharCounter('author-name');
-    setupCharCounter('prompt');
+    setupCharCounters();
+
+
+    // --- Initial Setup & Event Listeners ---
+    setupLayout();
+
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(setupLayout, 300);
+    });
+
+    setInterval(() => {
+        const isMobile = window.innerWidth <= 768;
+        populateLatestWorks(isMobile);
+    }, UPDATE_INTERVAL);
 });

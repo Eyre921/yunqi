@@ -1,0 +1,110 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户模型
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      Role     @default(USER)
+  password  String?
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关联
+  accounts Account[]
+  sessions Session[]
+  works    Work[]
+
+  @@map("users")
+}
+
+// 账户模型（NextAuth）
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+// 会话模型（NextAuth）
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// 验证令牌模型（NextAuth）
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verificationtokens")
+}
+
+// 作品模型
+model Work {
+  id          String     @id @default(cuid())
+  name        String     // 作品名字
+  title       String     // 作品简述
+  description String?    // 作品详细描述 - 新增字段
+  author      String     // 作者名
+  prompt      String?    // AI生成提示词
+  imageUrl    String     // 图片URL
+  status      WorkStatus @default(PENDING) // 审核状态
+  likeCount   Int        @default(0) // 点赞数
+  viewCount   Int        @default(0) // 浏览数
+  isDeleted   Boolean    @default(false) // 软删除标记
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  approvedAt  DateTime?  // 审核通过时间
+  rejectedAt  DateTime?  // 审核拒绝时间
+  rejectReason String?   // 拒绝原因
+
+  // 关联
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id])
+
+  @@map("works")
+}
+
+// 枚举类型
+enum Role {
+  USER
+  ADMIN
+}
+
+enum WorkStatus {
+  PENDING  // 待审核
+  APPROVED // 已通过
+  REJECTED // 已拒绝
+}

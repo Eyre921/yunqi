@@ -21,12 +21,8 @@
         </div>
 
         <h1 class="section-title">热门作品</h1>
-        <div class="marquee-container" id="popular-works-1">
-            <div class="marquee-track reverse"></div>
-        </div>
-        
-        <div class="marquee-container" id="popular-works-2">
-            <div class="marquee-track"></div>
+        <div id="popular-works-wrapper">
+            <!-- 内容将由 JavaScript 动态生成 -->
         </div>
     </main>
     
@@ -35,9 +31,14 @@
             <span class="modal-close">&times;</span>
             <h2>上传我的作品</h2>
             <div class="form-group">
+                <label for="work-name">作品名字 (必填)</label>
+                <input type="text" id="work-name" name="name" maxlength="50">
+                <div class="char-counter">0 / 50</div>
+            </div>
+            <div class="form-group">
                 <label for="work-title">作品简述 (必填)</label>
-                <input type="text" id="work-title" name="title" maxlength="30">
-                <div class="char-counter">0 / 30</div>
+                <textarea id="work-title" name="title" rows="3" maxlength="300"></textarea>
+                <div class="char-counter">0 / 300</div>
             </div>
             <div class="form-group">
                 <label for="author-name">作者名 (必填)</label>
@@ -46,8 +47,8 @@
             </div>
             <div class="form-group">
                 <label for="prompt">Prompt (可选)</label>
-                <textarea id="prompt" name="prompt" rows="4" maxlength="300"></textarea>
-                <div class="char-counter">0 / 300</div>
+                <textarea id="prompt" name="prompt" rows="6" maxlength="8000"></textarea>
+                <div class="char-counter">0 / 8000</div>
             </div>
             <div class="form-group">
                 <label for="work-image">作品图片 (JPG/PNG, &lt;5MB)</label>

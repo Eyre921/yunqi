@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { signIn, getSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
-export default function SignInPage() {
+// 将使用 useSearchParams 的逻辑提取到单独的组件中
+function SignInForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -128,5 +129,18 @@ export default function SignInPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+// 主组件用 Suspense 包裹
+export default function SignInPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <LoadingSpinner size="lg" text="正在加载..." />
+      </div>
+    }>
+      <SignInForm />
+    </Suspense>
   );
 }

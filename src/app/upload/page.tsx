@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorMessage from '@/components/ErrorMessage';
@@ -22,6 +22,10 @@ type UploadConfig = {
 export default function UploadPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get('edit');
+  const isEditMode = !!editId;
+  
   const [uploadConfig, setUploadConfig] = useState<UploadConfig | null>(null);
   const [configLoading, setConfigLoading] = useState(true);
   const [formData, setFormData] = useState({
@@ -36,23 +40,65 @@ export default function UploadPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [userUploadCount, setUserUploadCount] = useState(0);
+  const [isLoadingWork, setIsLoadingWork] = useState(false);
 
   // 获取上传配置
   useEffect(() => {
     fetchUploadConfig();
   }, []);
 
+  // 预加载作品数据（编辑模式）
+  useEffect(() => {
+    if (isEditMode && editId) {
+      fetchWorkData(editId);
+    }
+  }, [isEditMode, editId]);
+
   // 检查用户上传数量
   useEffect(() => {
     if (session?.user) {
       fetchUserUploadCount();
-      // 自动设置作者名为已登录用户的名字
-      setFormData(prev => ({
-        ...prev,
-        author: session.user.name || session.user.email || ''
-      }));
+      // 自动设置作者名为已登录用户的名字（仅在新建模式下）
+      if (!isEditMode) {
+        setFormData(prev => ({
+          ...prev,
+          author: session.user.name || session.user.email || ''
+        }));
+      }
     }
-  }, [session]);
+  }, [session, isEditMode]);
+
+  const fetchWorkData = async (workId: string) => {
+    setIsLoadingWork(true);
+    try {
+      const response = await fetch(`/api/works/${workId}`);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          const work = result.data;
+          // 填充表单数据
+          setFormData({
+            name: work.name,
+            title: work.title,
+            author: work.author,
+            prompt: work.prompt || '',
+            description: work.description || ''
+          });
+          setImagePreview(work.imageUrl);
+        } else {
+          throw new Error(result.error || '获取作品数据失败');
+        }
+      } else {
+        throw new Error('获取作品数据失败');
+      }
+    } catch (error) {
+      console.error('加载作品数据失败:', error);
+      alert(error instanceof Error ? error.message : '加载作品数据失败，请重试');
+      router.push('/profile'); // 加载失败时返回个人中心
+    } finally {
+      setIsLoadingWork(false);
+    }
+  };
 
   const fetchUploadConfig = async () => {
     try {
@@ -168,33 +214,34 @@ export default function UploadPage() {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-
+  
     if (!formData.name.trim()) {
       newErrors.name = '作品名称不能为空';
     } else if (formData.name.length > 50) {
       newErrors.name = '作品名称不能超过50个字符';
     }
-
+  
     if (!formData.title.trim()) {
       newErrors.title = '作品简述不能为空';
     } else if (formData.title.length > 300) {
       newErrors.title = '作品简述不能超过300个字符';
     }
-
+  
     if (!formData.author.trim()) {
       newErrors.author = '作者名不能为空';
     } else if (formData.author.length > 15) {
       newErrors.author = '作者名不能超过15个字符';
     }
-
+  
     if (formData.prompt && formData.prompt.length > 8000) {
       newErrors.prompt = 'Prompt不能超过8000个字符';
     }
-
-    if (!imageFile) {
+  
+    // 修改图片验证逻辑：编辑模式下如果有图片预览就不需要重新选择文件
+    if (!imageFile && (!isEditMode || !imagePreview)) {
       newErrors.image = '请选择作品图片';
     }
-
+  
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -202,66 +249,103 @@ export default function UploadPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
-
-    const permission = checkUploadPermission();
-    if (!permission.allowed) {
-      alert(permission.reason);
+    if (!validateForm()) {
       return;
     }
-
+  
     setIsSubmitting(true);
-
+    
     try {
-      // 上传图片
-      const imageFormData = new FormData();
-      imageFormData.append('file', imageFile!);
-
-      const uploadResponse = await fetch('/api/upload', {
-        method: 'POST',
-        body: imageFormData,
-      });
-
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json();
-        throw new Error(errorData.error || '图片上传失败');
+      let imageUrl = imagePreview;
+      
+      // 如果有新选择的图片文件，先上传图片
+      if (imageFile) {
+        const formDataForImage = new FormData();
+        formDataForImage.append('image', imageFile);
+        
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
+          body: formDataForImage,
+        });
+        
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json();
+          throw new Error(errorData.error || '图片上传失败');
+        }
+  
+        const { data: uploadResult } = await uploadResponse.json();
+        imageUrl = uploadResult.imageUrl;
       }
-
-      const { data: uploadResult } = await uploadResponse.json();
-
+  
       // 提交作品数据
-      const response = await fetch('/api/works', {
-        method: 'POST',
+      const url = isEditMode ? `/api/works/${editId}` : '/api/works';
+      const method = isEditMode ? 'PUT' : 'POST';
+      
+      // 构建提交数据：编辑模式和新建模式都提交完整的表单数据
+      const submitData = {
+        name: formData.name.trim(),
+        title: formData.title.trim(),
+        author: formData.author.trim(),
+        description: formData.description.trim(),
+        prompt: formData.prompt.trim(),
+        imageUrl: imageUrl
+      };
+      
+      // 添加调试信息
+      console.log('提交数据:', submitData);
+      console.log('编辑模式:', isEditMode);
+      
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...formData,
-          imageUrl: uploadResult.imageUrl,
-        }),
+        body: JSON.stringify(submitData),
       });
-
+  
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '提交失败');
+        let errorMessage = isEditMode ? '更新失败' : '提交失败';
+        
+        try {
+          const errorData = await response.json();
+          console.error('API错误响应:', errorData);
+          
+          // 检查不同的错误响应格式
+          if (errorData.error) {
+            errorMessage = errorData.error;
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          } else if (typeof errorData === 'string') {
+            errorMessage = errorData;
+          } else {
+            // 如果错误数据为空对象或其他格式，使用HTTP状态码信息
+            errorMessage = `请求失败 (${response.status}: ${response.statusText})`;
+          }
+        } catch (jsonError) {
+          // 如果JSON解析失败，使用HTTP状态码信息
+          console.error('解析错误响应失败:', jsonError);
+          errorMessage = `请求失败 (${response.status}: ${response.statusText})`;
+        }
+        
+        throw new Error(errorMessage);
       }
-
+  
       // 成功提示
-      alert('作品已提交审核，请耐心等待！');
-      router.push('/');
+      alert(isEditMode ? '作品已更新，正在重新审核中！' : '作品已提交审核，请耐心等待！');
+      router.push(isEditMode ? '/profile' : '/');
     } catch (error) {
-      console.error('提交失败:', error);
-      alert(error instanceof Error ? error.message : '提交失败，请重试');
+      console.error(isEditMode ? '更新失败:' : '提交失败:', error);
+      alert(error instanceof Error ? error.message : (isEditMode ? '更新失败，请重试' : '提交失败，请重试'));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   // 登录检查
-  if (status === 'loading' || configLoading) {
+  if (status === 'loading' || configLoading || isLoadingWork) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <LoadingSpinner size="lg" text="加载中..." />
+        <LoadingSpinner size="lg" text={isLoadingWork ? '加载作品数据中...' : '加载中...'} />
       </div>
     );
   }
@@ -314,10 +398,10 @@ export default function UploadPage() {
         {/* 头部 */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            上传作品
+            {isEditMode ? '编辑作品' : '上传作品'}
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            分享您的创意作品，让更多人看到
+            {isEditMode ? '修改您的作品信息' : '分享您的创意作品，让更多人看到'}
           </p>
           {uploadConfig?.announcement && (
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mt-4">
@@ -535,7 +619,7 @@ export default function UploadPage() {
             <div className="flex space-x-4">
               <button
                 type="button"
-                onClick={() => router.push('/')}
+                onClick={() => router.push(isEditMode ? '/profile' : '/')}
                 className="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 取消
@@ -543,15 +627,15 @@ export default function UploadPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
+                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
               >
                 {isSubmitting ? (
                   <>
-                    <LoadingSpinner size="sm" />
-                    <span>提交中...</span>
+                    <LoadingSpinner size="sm" className="mr-2" />
+                    {isEditMode ? '更新中...' : '提交中...'}
                   </>
                 ) : (
-                  <span>提交作品</span>
+                  isEditMode ? '更新作品' : '提交作品'
                 )}
               </button>
             </div>

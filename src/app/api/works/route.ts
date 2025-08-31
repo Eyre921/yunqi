@@ -9,11 +9,43 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') as WorkStatus | null;
+    const sortBy = searchParams.get('sortBy') || 'default'; // latest, popular, default
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const skip = (page - 1) * limit;
 
     const where = status ? { status } : { status: WorkStatus.APPROVED };
+
+    // 根据 sortBy 参数确定排序规则
+    let orderBy: any;
+    switch (sortBy) {
+      case 'latest':
+        // 最新作品：按审核通过时间降序
+        orderBy = {
+          approvedAt: 'desc'
+        };
+        break;
+      case 'popular':
+        // 热门作品：按点赞数降序，不考虑时间
+        orderBy = {
+          likeCount: 'desc'
+        };
+        break;
+      default:
+        // 默认排序：精选优先，然后点赞数，最后创建时间
+        orderBy = [
+          {
+            featured: 'desc' // 1. 精选作品优先
+          },
+          {
+            likeCount: 'desc' // 2. 点赞数高的在前
+          },
+          {
+            createdAt: 'desc' // 3. 修改为降序，新作品在前
+          }
+        ];
+        break;
+    }
 
     const [works, total] = await Promise.all([
       prisma.work.findMany({
@@ -27,9 +59,7 @@ export async function GET(request: NextRequest) {
             }
           }
         },
-        orderBy: {
-          createdAt: 'desc'
-        },
+        orderBy,
         skip,
         take: limit
       }),

@@ -68,8 +68,9 @@ export async function GET(request: NextRequest) {
         pagination: {
           page: query.page,
           limit: query.limit,
+
           total,
-          pages: Math.ceil(total / query.limit)
+          totalPages: Math.ceil(total / query.limit)  // 修改：从 pages 改为 totalPages
         }
       }
     });

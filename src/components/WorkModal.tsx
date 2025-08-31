@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Work } from '@prisma/client';
+import ImageViewer from './ImageViewer';
 
 interface WorkModalProps {
   work: (Work & {
@@ -14,20 +15,20 @@ interface WorkModalProps {
   }) | null;
   isOpen: boolean;
   onClose: () => void;
-  onLike?: () => void;
+  onLike?: () => void; // 已经是可选的，保持不变
 }
 
 export default function WorkModal({ work, isOpen, onClose, onLike }: WorkModalProps) {
   const [likeCount, setLikeCount] = useState(0);
   const [viewCount, setViewCount] = useState(0);
-  const [isLiking, setIsLiking] = useState(false);
+  // 移除 isLiking 状态，不显示加载圈
   const [copySuccess, setCopySuccess] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [showImageViewer, setShowImageViewer] = useState(false);
   
   const handleLike = async () => {
-    if (isLiking || !work) return;
+    if (!work) return;
     
-    setIsLiking(true);
     try {
       const response = await fetch(`/api/works/${work.id}/like`, {
         method: 'POST',
@@ -35,16 +36,50 @@ export default function WorkModal({ work, isOpen, onClose, onLike }: WorkModalPr
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          setLikeCount(prev => prev + 1);
+          // 使用后端返回的实际点赞数
+          setLikeCount(data.data.likeCount);
           onLike?.(); // 通知父组件更新
+          
+          // 根据增加的点赞数显示不同的提示信息（参考示例逻辑）
+          const increment = data.data.increment;
+          let message;
+          if (increment >= 8) {
+            message = `哇！获得了 ${increment} 个赞！作品太棒了！🎉`;
+          } else if (increment >= 5) {
+            message = `太好了！获得了 ${increment} 个赞！❤️`;
+          } else {
+            message = `点赞成功！+${increment} 👍`;
+          }
+          
+          // 显示toast提示
+          showToast(message);
         }
       }
     } catch (error) {
       console.error('点赞失败:', error);
-    } finally {
-      setIsLiking(false);
+      showToast('点赞失败，请稍后重试');
     }
   };
+  
+  // 添加toast提示函数
+  const showToast = (message: string) => {
+    // 创建toast元素
+    const toast = document.createElement('div');
+    toast.className = 'fixed top-4 right-4 bg-black bg-opacity-80 text-white px-4 py-2 rounded-lg z-50 transition-opacity duration-300';
+    toast.textContent = message;
+    
+    // 添加到页面
+    document.body.appendChild(toast);
+    
+    // 3秒后移除
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => {
+        document.body.removeChild(toast);
+      }, 300);
+    }, 3000);
+  };
+
   
   useEffect(() => {
     if (work) {
@@ -113,6 +148,16 @@ export default function WorkModal({ work, isOpen, onClose, onLike }: WorkModalPr
           ✕
         </button>
         
+        {/* 精选徽章 - 模态框版本 */}
+        {work.featured && (
+          <div className="absolute top-4 left-4 z-10">
+            <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-2 rounded-full text-sm font-bold shadow-lg flex items-center">
+              <span className="mr-1">⭐</span>
+              精选作品
+            </div>
+          </div>
+        )}
+        
         {/* 图片区域 */}
         <div className="relative aspect-video bg-gray-100 dark:bg-gray-700">
           {!imageError ? (
@@ -120,8 +165,9 @@ export default function WorkModal({ work, isOpen, onClose, onLike }: WorkModalPr
               src={work.imageUrl}
               alt={work.name || work.title}
               fill
-              className="object-contain"
+              className="object-contain cursor-pointer hover:opacity-90 transition-opacity"
               onError={() => setImageError(true)}
+              onClick={() => setShowImageViewer(true)}
               sizes="(max-width: 768px) 100vw, 80vw"
               priority
             />
@@ -133,15 +179,31 @@ export default function WorkModal({ work, isOpen, onClose, onLike }: WorkModalPr
               </div>
             </div>
           )}
+          
+          {/* 点击查看提示 */}
+          {!imageError && (
+            <div className="absolute bottom-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded opacity-0 hover:opacity-100 transition-opacity pointer-events-none">
+              点击查看大图
+            </div>
+          )}
         </div>
         
         {/* 内容区域 */}
         <div className="p-6">
           <div className="flex justify-between items-start mb-4">
             <div className="flex-1">
-              <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">
-                {work.name || work.title}
-              </h2>
+              <div className="flex items-center gap-3 mb-2">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {work.name || work.title}
+                </h2>
+                {/* 精选标识 - 标题旁版本 */}
+                {work.featured && (
+                  <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center">
+                    <span className="mr-1">⭐</span>
+                    精选
+                  </div>
+                )}
+              </div>
               <p className="text-gray-600 dark:text-gray-300 mb-2">
                 {work.title}
               </p>
@@ -155,20 +217,13 @@ export default function WorkModal({ work, isOpen, onClose, onLike }: WorkModalPr
               {/* 点赞按钮 */}
               <button
                 onClick={handleLike}
-                disabled={isLiking}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all ${
-                  isLiking 
-                    ? 'bg-gray-200 dark:bg-gray-700 cursor-not-allowed' 
-                    : 'bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-600 dark:text-red-400'
-                }`}
+                className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
               >
-                <span className={isLiking ? 'animate-pulse' : ''}>
-                  {isLiking ? '💖' : '❤️'}
-                </span>
-                <span>{likeCount}</span>
-                {isLiking && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 ml-2"></div>}
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                </svg>
+                {likeCount}
               </button>
-              
               {/* 浏览量显示 */}
               <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
                 <span className="flex items-center">
@@ -211,6 +266,13 @@ export default function WorkModal({ work, isOpen, onClose, onLike }: WorkModalPr
           </div>
         </div>
       </div>
+      {/* 图片查看器 */}
+      <ImageViewer
+        src={work.imageUrl}
+        alt={work.name || work.title}
+        isOpen={showImageViewer}
+        onClose={() => setShowImageViewer(false)}
+      />
     </div>
   );
 }

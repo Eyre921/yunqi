@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: '输入数据无效', details: error.errors },
+        { error: '输入数据无效', details: error.issues },
         { status: 400 }
       );
     }

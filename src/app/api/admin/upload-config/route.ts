@@ -68,6 +68,18 @@ export async function POST(request: NextRequest) {
       }, { status: 403 });
     }
 
+    // 验证用户是否存在
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id }
+    });
+    
+    if (!user) {
+      return NextResponse.json({
+        success: false,
+        error: '用户不存在，请重新登录'
+      }, { status: 401 });
+    }
+
     const body = await request.json();
     const validatedData = UploadConfigSchema.parse(body);
 
@@ -89,7 +101,7 @@ export async function POST(request: NextRequest) {
         ...validatedData,
         startTime: validatedData.startTime ? new Date(validatedData.startTime) : null,
         endTime: validatedData.endTime ? new Date(validatedData.endTime) : null,
-        createdBy: session.user.id
+        createdBy: user.id  // 使用验证过的用户ID
       },
       include: {
         creator: {
@@ -101,22 +113,39 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: config,
-      message: '上传配置更新成功'
+      message: '上传配置创建成功'
     });
-  } catch (error) {
-    console.error('更新上传配置失败:', error);
+
+  } catch (error: unknown) {
+    console.error('创建上传配置失败:', error);
     
     if (error instanceof z.ZodError) {
       return NextResponse.json({
         success: false,
         error: '输入数据无效',
-        details: error.issues  // 修复：应该是 issues 而不是 issue
+        details: error.issues
       }, { status: 400 });
     }
-
+    
+    // 处理 Prisma 错误
+    if (error && typeof error === 'object' && 'code' in error) {
+      const prismaError = error as { code: string; message: string };
+      if (prismaError.code === 'P2003') {
+        return NextResponse.json({
+          success: false,
+          error: '外键约束违反，请检查用户数据',
+          code: 'FOREIGN_KEY_CONSTRAINT'
+        }, { status: 400 });
+      }
+    }
+    
+    // 处理其他错误
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    
     return NextResponse.json({
       success: false,
-      error: '更新上传配置失败'
+      error: '创建上传配置失败',
+      details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
     }, { status: 500 });
   }
 }

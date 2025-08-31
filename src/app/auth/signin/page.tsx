@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { signIn, getSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
+import Link from 'next/link';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function SignInPage() {
@@ -107,6 +108,14 @@ export default function SignInPage() {
             </button>
           </div>
 
+          <div className="text-center">
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              还没有账户？{' '}
+              <Link href="/auth/register" className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400">
+                立即注册
+              </Link>
+            </span>
+          </div>
           <div className="text-center">
             <button
               type="button"

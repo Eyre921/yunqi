@@ -12,6 +12,9 @@ interface ApiResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
+  details?: any[];
+  code?: string;
+  message?: string;
 }
 
 export function useApi<T>() {
@@ -24,7 +27,7 @@ export function useApi<T>() {
   const execute = useCallback(async (
     url: string, 
     options?: RequestInit
-  ): Promise<T | null> => {
+  ): Promise<ApiResponse<T> | null> => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
@@ -38,25 +41,36 @@ export function useApi<T>() {
       
       const result: ApiResponse<T> = await response.json();
       
-      if (!result.success) {
-        throw new Error(result.error || '请求失败');
+      // 更新状态但不抛出异常，让调用者处理错误
+      if (result.success) {
+        setState({
+          data: result.data || null,
+          loading: false,
+          error: null
+        });
+      } else {
+        setState({
+          data: null,
+          loading: false,
+          error: result.error || '请求失败'
+        });
       }
       
-      setState({
-        data: result.data || null,
-        loading: false,
-        error: null
-      });
-      
-      return result.data || null;
+      // 返回完整的响应对象
+      return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      const errorMessage = error instanceof Error ? error.message : '网络错误';
       setState({
         data: null,
         loading: false,
         error: errorMessage
       });
-      return null;
+      
+      // 返回错误响应格式
+      return {
+        success: false,
+        error: errorMessage
+      };
     }
   }, []);
 

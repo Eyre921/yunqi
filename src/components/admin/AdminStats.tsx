@@ -5,7 +5,7 @@ import { useApi } from '@/hooks/useApi';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorMessage from '@/components/ErrorMessage';
 
-// 更新接口定义以匹配API返回的数据结构
+// 保持接口定义不变
 interface ApiStatsResponse {
   overview: {
     totalUsers: number;
@@ -36,10 +36,17 @@ export function AdminStats() {
 
   const loadStats = async () => {
     try {
-      const data = await execute('/api/admin/stats');
-      setStats(data);
+      const response = await execute('/api/admin/stats');
+      if (response?.success && response.data) {
+        // 修复：直接使用 response.data，而不是 response.data.data
+        setStats(response.data);
+      } else {
+        // 添加错误处理，确保 stats 不会是 undefined
+        setStats(null);
+      }
     } catch (err) {
       console.error('加载统计数据失败:', err);
+      setStats(null);
     }
   };
 
@@ -59,7 +66,8 @@ export function AdminStats() {
     );
   }
 
-  if (!stats) {
+  // 添加更安全的检查
+  if (!stats || !stats.overview) {
     return (
       <div className="p-6 text-center text-gray-500 dark:text-gray-400">
         暂无统计数据

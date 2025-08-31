@@ -31,6 +31,16 @@ export default function WorkCard({ work, onClick, onLike }: WorkCardProps) {
       onClick={onClick}
     >
       <div className="relative aspect-video bg-gray-200 dark:bg-gray-700">
+        {/* 精选徽章 */}
+        {work.featured && (
+          <div className="absolute top-2 right-2 z-10">
+            <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold shadow-lg flex items-center">
+              <span className="mr-1">⭐</span>
+              精选
+            </div>
+          </div>
+        )}
+        
         {!imageError ? (
           <Image
             src={work.imageUrl}

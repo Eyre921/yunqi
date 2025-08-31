@@ -30,12 +30,14 @@ export async function POST(
       );
     }
     
-    // 增加点赞数
+    // 随机增加1-10之间的点赞数
+    const randomIncrement = Math.floor(Math.random() * 10) + 1;
+    
     const updatedWork = await prisma.work.update({
       where: { id },
       data: {
         likeCount: {
-          increment: 1,
+          increment: randomIncrement,
         },
       },
       select: {
@@ -46,7 +48,8 @@ export async function POST(
     return NextResponse.json({ 
       success: true,
       data: {
-        likeCount: updatedWork.likeCount
+        likeCount: updatedWork.likeCount,
+        increment: randomIncrement // 返回实际增加的数量
       }
     });
   } catch (error) {

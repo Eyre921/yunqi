@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useApi } from '@/hooks/useApi';
-// 修复：改为默认导入
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorMessage from '@/components/ErrorMessage';
 import { Role } from '@prisma/client';
@@ -18,7 +17,8 @@ interface User {
   };
 }
 
-interface UsersResponse {
+// 修改接口定义，匹配 API 返回的嵌套结构
+interface UsersApiResponse {
   users: User[];
   pagination: {
     page: number;
@@ -30,12 +30,12 @@ interface UsersResponse {
 
 export function UsersManagement() {
   const [users, setUsers] = useState<User[]>([]);
-  const [pagination, setPagination] = useState<UsersResponse['pagination'] | null>(null);
+  const [pagination, setPagination] = useState<UsersApiResponse['pagination'] | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [roleFilter, setRoleFilter] = useState<Role | ''>('');
   const [searchTerm, setSearchTerm] = useState('');
-  // 修复：将 apiCall 改为 execute，并为 useApi 指定泛型类型
-  const { loading, error, execute } = useApi<UsersResponse>();
+  // 修改泛型参数
+  const { loading, error, execute } = useApi<UsersApiResponse>();
 
   useEffect(() => {
     loadUsers();
@@ -50,14 +50,20 @@ export function UsersManagement() {
         ...(searchTerm && { search: searchTerm })
       });
       
-      // 修复：将 apiCall 改为 execute
       const response = await execute(`/api/admin/users?${params}`);
-      if (response) {
-        setUsers(response.users);
-        setPagination(response.pagination);
+      // 修改数据访问方式
+      if (response?.success && response.data) {
+        setUsers(response.data.users);
+        setPagination(response.data.pagination);
+      } else {
+        // 确保错误时重置状态
+        setUsers([]);
+        setPagination(null);
       }
     } catch (err) {
       console.error('加载用户列表失败:', err);
+      setUsers([]);
+      setPagination(null);
     }
   };
 

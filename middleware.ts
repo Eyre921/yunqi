@@ -8,6 +8,7 @@ export default withAuth(
     const isAuthPage = req.nextUrl.pathname.startsWith('/auth');
     const isAdminPage = req.nextUrl.pathname.startsWith('/admin');
     const isUploadPage = req.nextUrl.pathname.startsWith('/upload');
+    const isProfilePage = req.nextUrl.pathname.startsWith('/profile');
 
     // 如果访问认证页面且已登录，重定向到首页
     if (isAuthPage && isAuth) {
@@ -24,6 +25,11 @@ export default withAuth(
       return NextResponse.redirect(new URL('/auth/signin', req.url));
     }
 
+    // 如果访问个人中心但未登录，重定向到登录页
+    if (isProfilePage && !isAuth) {
+      return NextResponse.redirect(new URL('/auth/signin', req.url));
+    }
+
     return NextResponse.next();
   },
   {
@@ -37,6 +43,7 @@ export const config = {
   matcher: [
     '/admin/:path*',
     '/upload/:path*',
-    '/auth/:path*'
+    '/auth/:path*',
+    '/profile/:path*'
   ]
 };

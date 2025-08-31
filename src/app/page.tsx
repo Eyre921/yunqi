@@ -10,6 +10,7 @@ import Header from '@/components/Header';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorMessage from '@/components/ErrorMessage';
 import ErrorBoundary from '@/components/ErrorBoundary';
+// import OnlineCounter from '@/components/OnlineCounter'; // 新增导入
 import { useApi } from '@/hooks/useApi';
 import { Work } from '@prisma/client';
 
@@ -190,10 +191,14 @@ export default function HomePage() {
         {/* 使用统一的顶栏组件 */}
         <Header />
         
+        {/* 移除原来的在线人数计数器位置 */}
+        
+        {/* 主要内容区域 */}
+        
         {/* 最新作品轮播 - 突破容器限制，占满整个页面宽度 */}
         {latestWorks.length > 0 && (
-          <section className="py-8">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
+          <section className="py-4">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
               <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white">
                 🔥 最新作品
               </h2>
@@ -206,16 +211,13 @@ export default function HomePage() {
         )}
 
         {/* 主要内容区域 */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           {/* 热门作品无限滚动 */}
-          <section className="py-12">
-            <div className="mb-8">
+          <section className="py-4">
+            <div className="mb-6">
               <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white">
                 ⭐ 热门作品
               </h2>
-              {/* <p className="text-center text-gray-600 dark:text-gray-400 mt-2">
-                每一行都以跑马灯形式展示，自动无限加载
-              </p> */}
             </div>
             
             {/* 热门作品也突破容器限制 */}

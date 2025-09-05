@@ -26,6 +26,7 @@ model User {
   sessions      Session[]
   works         Work[]
   uploadConfigs UploadConfig[] @relation("UserUploadConfigs") // 创建的上传配置
+  onlineCounterConfigs OnlineCounterConfig[] @relation("UserOnlineCounterConfigs") // 创建的在线人数配置
 
   @@map("users")
 }
@@ -117,6 +118,26 @@ model UploadConfig {
   creator   User?   @relation("UserUploadConfigs", fields: [createdBy], references: [id])
 
   @@map("upload_configs")
+}
+
+// 在线人数配置模型
+model OnlineCounterConfig {
+  id            String   @id @default(cuid())
+  currentCount  Int      @default(1075)         // 当前显示人数
+  baseCount     Int      @default(1000)         // 基础人数
+  maxCount      Int      @default(2000)         // 最大人数
+  growthRate    Float    @default(0.5)          // 增长速率（每分钟增长人数）
+  isEnabled     Boolean  @default(true)         // 功能开关
+  displayText   String   @default("人正在云栖大会创作") // 显示文本
+  lastUpdated   DateTime @default(now())        // 最后更新时间
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // 创建者
+  createdBy String?
+  creator   User?   @relation("UserOnlineCounterConfigs", fields: [createdBy], references: [id])
+
+  @@map("online_counter_configs")
 }
 
 // 枚举类型

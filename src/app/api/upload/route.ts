@@ -62,7 +62,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const fileName = `${timestamp}_${randomStr}.${extension}`;
 
     // 确保上传目录存在
-    const uploadDir = join(process.cwd(), 'public', 'uploads');
+    const uploadDir = join(process.cwd(), 'public', 'images');
     if (!existsSync(uploadDir)) {
       await mkdir(uploadDir, { recursive: true });
     }
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     await writeFile(filePath, buffer);
 
     // 返回文件URL
-    const imageUrl = `/uploads/${fileName}`;
+    const imageUrl = `/images/${fileName}`;
 
     return NextResponse.json({
       success: true,

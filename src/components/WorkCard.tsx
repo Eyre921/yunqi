@@ -67,11 +67,6 @@ export default function WorkCard({ work, onClick, onLike }: WorkCardProps) {
         <p className="text-gray-600 dark:text-gray-300 text-sm mb-2 line-clamp-2">
           作者：{work.author || '匿名'}
         </p>
-        {work.prompt && (
-          <p className="text-gray-500 dark:text-gray-400 text-xs mb-2 line-clamp-2">
-            Prompt: {work.prompt}
-          </p>
-        )}
         <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
           <div className="flex items-center space-x-4">
             <button 

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import ImageViewer from './ImageViewer';
 import type { WorkModalProps } from '@/types/work';
 
-export default function WorkModal({ work, isOpen, onClose, onLike }: WorkModalProps) {
+export default function WorkModal({ work, isOpen, onClose, onLike, onWorkUpdate }: WorkModalProps) {
   const [likeCount, setLikeCount] = useState(0);
   const [viewCount, setViewCount] = useState(0);
   // 移除 isLiking 状态，不显示加载圈
@@ -26,6 +26,15 @@ export default function WorkModal({ work, isOpen, onClose, onLike }: WorkModalPr
           // 使用后端返回的实际点赞数
           setLikeCount(data.data.likeCount);
           onLike?.(); // 通知父组件更新
+          
+          // 通知父组件更新作品数据
+          if (onWorkUpdate && work) {
+            const updatedWork = {
+              ...work,
+              likeCount: data.data.likeCount
+            };
+            onWorkUpdate(updatedWork);
+          }
           
           // 根据增加的点赞数显示不同的提示信息（参考示例逻辑）
           const increment = data.data.increment;
@@ -74,18 +83,37 @@ export default function WorkModal({ work, isOpen, onClose, onLike }: WorkModalPr
       setViewCount(work.viewCount || 0);
       setImageError(false);
       
-      // 增加浏览量
-      fetch(`/api/works/${work.id}/view`, {
-        method: 'POST',
-      }).then(response => {
-        if (response.ok) {
-          return response.json();
-        }
-      }).then(data => {
-        if (data?.viewCount) {
-          setViewCount(data.viewCount);
-        }
-      }).catch(console.error);
+      // 检查是否已经浏览过这个作品（在当前会话中）
+      const viewedWorksKey = 'viewedWorks';
+      const viewedWorks = JSON.parse(sessionStorage.getItem(viewedWorksKey) || '[]');
+      
+      if (!viewedWorks.includes(work.id)) {
+        // 增加浏览量
+        fetch(`/api/works/${work.id}/view`, {
+          method: 'POST',
+        }).then(response => {
+          if (response.ok) {
+            return response.json();
+          }
+        }).then(data => {
+          if (data?.success && data?.data?.viewCount) {
+            setViewCount(data.data.viewCount);
+            
+            // 记录已浏览的作品ID
+            const updatedViewedWorks = [...viewedWorks, work.id];
+            sessionStorage.setItem(viewedWorksKey, JSON.stringify(updatedViewedWorks));
+            
+            // 通知父组件更新作品数据
+            if (onWorkUpdate) {
+              const updatedWork = {
+                ...work,
+                viewCount: data.data.viewCount
+              };
+              onWorkUpdate(updatedWork);
+            }
+          }
+        }).catch(console.error);
+      }
     }
   }, [work]);
   

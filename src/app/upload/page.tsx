@@ -214,7 +214,7 @@ function UploadForm() {
       // 如果有新选择的图片文件，先上传图片
       if (imageFile) {
         const formDataForImage = new FormData();
-        formDataForImage.append('image', imageFile);
+        formDataForImage.append('file', imageFile);
         
         const uploadResponse = await fetch('/api/upload', {
           method: 'POST',

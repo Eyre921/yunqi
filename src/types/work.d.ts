@@ -78,6 +78,7 @@ export interface WorkModalProps {
   isOpen: boolean;
   onClose: () => void;
   onLike?: () => void;
+  onWorkUpdate?: (work: WorkWithUser) => void;
 }
 
 export interface WorkMarqueeProps {

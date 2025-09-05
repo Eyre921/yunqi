@@ -47,10 +47,15 @@ export async function PATCH(
 
     // 准备更新数据
     const updateData: any = {
-      status: validatedData.status,
-      reviewedAt: new Date(),
-      reviewedBy: session.user.id
+      status: validatedData.status
     };
+
+    // 根据审核状态设置相应的时间戳
+    if (validatedData.status === 'APPROVED') {
+      updateData.approvedAt = new Date();
+    } else if (validatedData.status === 'REJECTED') {
+      updateData.rejectedAt = new Date();
+    }
 
     // 如果是审核通过，添加随机初始点赞数（10-50之间）
     if (validatedData.status === 'APPROVED' && existingWork.status !== 'APPROVED') {

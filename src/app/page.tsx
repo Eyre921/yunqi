@@ -104,6 +104,18 @@ export default function HomePage() {
     setSelectedWork(null);
   };
 
+  const handleWorkUpdate = (updatedWork: WorkWithUser) => {
+    // 更新最新作品列表中的作品数据
+    setLatestWorks(prev => prev.map(work => 
+      work.id === updatedWork.id ? updatedWork : work
+    ));
+    
+    // 更新当前选中的作品
+    if (selectedWork && selectedWork.id === updatedWork.id) {
+      setSelectedWork(updatedWork);
+    }
+  };
+
   const handleLike = async (workId: string) => {
     try {
       const response = await fetch(`/api/works/${workId}/like`, {
@@ -212,8 +224,8 @@ export default function HomePage() {
           work={selectedWork}
           isOpen={!!selectedWork}
           onClose={handleCloseModal}
-          // 移除这行，避免重复调用API
-          // onLike={() => selectedWork && handleLike(selectedWork.id)}
+          onLike={() => selectedWork && handleLike(selectedWork.id)}
+          onWorkUpdate={handleWorkUpdate}
         />
         
         {/* 悬浮上传按钮 */}

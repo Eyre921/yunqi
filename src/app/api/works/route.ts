@@ -87,17 +87,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/works - 创建新作品
+// POST /api/works - 创建新作品（无需登录）
 export async function POST(request: NextRequest) {
   try {
+    // 移除登录验证，允许游客上传
     const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({
-        success: false,
-        error: '请先登录',
-        code: 'UNAUTHORIZED'
-      }, { status: 401 });
-    }
 
     // 获取上传配置
     const uploadConfig = await prisma.uploadConfig.findFirst({
@@ -139,50 +133,37 @@ export async function POST(request: NextRequest) {
       }, { status: 403 });
     }
 
-    // 检查用户上传数量限制
-    const userUploadCount = await prisma.work.count({
-      where: {
-        userId: session.user.id
-      }
-    });
-
-    if (userUploadCount >= uploadConfig.maxUploadsPerUser) {
-      return NextResponse.json({
-        success: false,
-        error: `您已达到最大上传数量限制（${uploadConfig.maxUploadsPerUser}个）`,
-        code: 'UPLOAD_LIMIT_EXCEEDED'
-      }, { status: 403 });
-    }
+    // 移除用户上传数量限制检查（因为无需登录）
 
     const body = await request.json();
-    const { name, title, author, prompt, imageUrl } = body;
+    const { name, author, prompt, imageUrl } = body;
 
-    if (!name || !title || !imageUrl) {
+    if (!name || !imageUrl) {
       return NextResponse.json({
         success: false,
-        error: '作品名称、标题和图片URL是必需的',
+        error: '作品名称和图片URL是必需的',
         code: 'MISSING_REQUIRED_FIELDS'
       }, { status: 400 });
     }
 
     const work = await prisma.work.create({
       data: {
+        title: name, // 保留数据库字段，但不在前端使用
         name,
-        title,
-        author,
-        prompt,
+        author: author || null,
+        prompt: prompt || null,
         imageUrl,
         status: WorkStatus.PENDING,
-        userId: session.user.id
+        userId: session?.user?.id || null
       },
       include: {
-        user: {
+        user: session?.user?.id ? {
           select: {
             id: true,
             name: true,
             email: true
           }
-        }
+        } : undefined
       }
     });
 

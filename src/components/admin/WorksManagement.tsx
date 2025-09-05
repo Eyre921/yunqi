@@ -4,30 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useApi } from '@/hooks/useApi';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorMessage from '@/components/ErrorMessage';
-import { Work, WorkStatus } from '@prisma/client';
+import { WorkStatus } from '@prisma/client';
 import { useDebounce } from '@/hooks/useDebounce';
 import Image from 'next/image';
-
-type WorkWithUser = Work & {
-  user?: {
-    id: string;
-    name: string;
-    email: string;
-  };
-};
-
-interface WorksResponse {
-  works: WorkWithUser[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
-
-type SortBy = 'createdAt' | 'approvedAt' | 'likeCount' | 'viewCount';
-type SortOrder = 'asc' | 'desc';
+import type { WorkWithUser, WorksResponse, SortBy, SortOrder } from '@/types/work';
 
 export function WorksManagement() {
   const [works, setWorks] = useState<WorkWithUser[]>([]);
@@ -196,7 +176,7 @@ export function WorksManagement() {
             <div className="flex-1">
               <input
                 type="text"
-                placeholder="搜索作品名称、标题或作者..."
+                placeholder="搜索作品名称或作者..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -300,7 +280,7 @@ export function WorksManagement() {
                           <div className="flex-shrink-0 h-16 w-16">
                             <Image
                               src={work.imageUrl}
-                              alt={work.title}
+                              alt={work.name || '作品图片'}
                               width={64}
                               height={64}
                               className="w-16 h-16 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
@@ -316,9 +296,7 @@ export function WorksManagement() {
                                 </span>
                               )}
                             </div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">
-                              {work.title}
-                            </div>
+
                             {work.description && (
                               <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 max-w-xs truncate">
                                 {work.description}
@@ -454,7 +432,7 @@ export function WorksManagement() {
                       </span>
                     )}
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-400 mt-1">{selectedWork.title}</p>
+
                 </div>
                 <button
                   onClick={closeModal}
@@ -469,7 +447,7 @@ export function WorksManagement() {
                 <div className="space-y-4">
                   <Image
                     src={selectedWork.imageUrl}
-                    alt={selectedWork.title}
+                    alt={selectedWork.name || '作品图片'}
                     width={500}
                     height={500}
                     className="w-full h-auto object-contain rounded-lg"

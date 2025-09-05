@@ -160,13 +160,13 @@ document.addEventListener('DOMContentLoaded', () => {
         card.href = "javascript:void(0)";
         if (isMobile) {
             card.innerHTML = `
-                <img src="${work.imageUrl}" alt="${work.title}" loading="lazy">
-                <div class="work-info">
-                    <h3 title="${work.title}">${work.title}</h3>
+                <img src="${work.imageUrl}" alt="${work.name}" loading="lazy">
+            <div class="work-info">
+            <h3 title="${work.name}">${work.name}</h3>
                     <p title="by ${work.author} • ❤️ ${work.likeCount}">by ${work.author} • ❤️ ${work.likeCount}</p>
                 </div>`;
         } else {
-            card.innerHTML = `<img src="${work.imageUrl}" alt="${work.title}" loading="lazy">`;
+            card.innerHTML = `<img src="${work.imageUrl}" alt="${work.name}" loading="lazy">`;
         }
         card.addEventListener('click', () => showWorkDetail(work));
         return card;
@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function showWorkDetail(work) {
         currentWork = work; // 保存当前作品引用
-        document.getElementById('detail-title').textContent = work.title;
+        document.getElementById('detail-title').textContent = work.name;
         document.getElementById('detail-author').textContent = work.author;
         document.getElementById('detail-likes').textContent = work.likeCount;
         document.getElementById('detail-prompt').textContent = work.prompt;

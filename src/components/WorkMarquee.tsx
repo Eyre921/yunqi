@@ -2,20 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import WorkCard from './WorkCard';
-import { Work } from '@prisma/client';
-
-interface WorkMarqueeProps {
-  works: (Work & {
-    user?: {
-      id: string;
-      name: string;
-      email: string;
-    };
-  })[];
-  onWorkClick: (work: Work) => void;
-  direction?: 'left' | 'right';
-  speed?: number;
-}
+import type { WorkMarqueeProps } from '@/types/work';
 
 export default function WorkMarquee({ 
   works, 

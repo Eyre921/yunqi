@@ -3,20 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import WorkMarquee from './WorkMarquee';
 import LoadingSpinner from './LoadingSpinner';
-import { Work } from '@prisma/client';
-
-type WorkWithUser = Work & {
-  user?: {
-    id: string;
-    name: string;
-    email: string;
-  };
-};
-
-interface InfiniteScrollWorksProps {
-  onWorkClick: (work: WorkWithUser) => void;
-  worksPerRow?: number;
-}
+import type { WorkWithUser, InfiniteScrollWorksProps } from '@/types/work';
 
 export default function InfiniteScrollWorks({ 
   onWorkClick, 

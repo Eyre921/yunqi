@@ -2,19 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Work } from '@prisma/client';
-
-interface WorkCardProps {
-  work: Work & {
-    user?: {
-      id: string;
-      name: string;
-      email: string;
-    };
-  };
-  onClick?: () => void;
-  onLike?: () => void;
-}
+import type { WorkCardProps } from '@/types/work';
 
 export default function WorkCard({ work, onClick, onLike }: WorkCardProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -44,7 +32,7 @@ export default function WorkCard({ work, onClick, onLike }: WorkCardProps) {
         {!imageError ? (
           <Image
             src={work.imageUrl}
-            alt={work.name || work.title}
+            alt={work.name || '作品图片'}
             fill
             className={`object-cover transition-opacity duration-300 ${
               imageLoaded ? 'opacity-100' : 'opacity-0'
@@ -74,20 +62,24 @@ export default function WorkCard({ work, onClick, onLike }: WorkCardProps) {
       
       <div className="p-4">
         <h3 className="font-semibold text-lg mb-2 line-clamp-1 text-gray-900 dark:text-white">
-          {work.name || work.title}
+          {work.name}
         </h3>
         <p className="text-gray-600 dark:text-gray-300 text-sm mb-2 line-clamp-2">
-          {work.title}
+          作者：{work.author || '匿名'}
         </p>
+        {work.prompt && (
+          <p className="text-gray-500 dark:text-gray-400 text-xs mb-2 line-clamp-2">
+            Prompt: {work.prompt}
+          </p>
+        )}
         <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
-          <span>by {work.author || work.user?.name || '匿名'}</span>
           <div className="flex items-center space-x-4">
             <button 
               onClick={handleLikeClick}
-              className="flex items-center hover:text-red-500 transition-colors"
+              className="flex items-center hover:text-blue-500 transition-colors"
               disabled={!onLike}
             >
-              <span className="mr-1">❤️</span>
+              <span className="mr-1">👍</span>
               {work.likeCount || 0}
             </button>
             <span className="flex items-center">

@@ -12,29 +12,7 @@ import ErrorMessage from '@/components/ErrorMessage';
 import ErrorBoundary from '@/components/ErrorBoundary';
 // import OnlineCounter from '@/components/OnlineCounter'; // 新增导入
 import { useApi } from '@/hooks/useApi';
-import { Work } from '@prisma/client';
-
-// 扩展 Work 类型以包含用户信息
-type WorkWithUser = Work & {
-  user?: {
-    id: string;
-    name: string;
-    email: string;
-  };
-};
-
-// 上传配置类型
-type UploadConfig = {
-  id: string;
-  isEnabled: boolean;
-  startTime: string | null;
-  endTime: string | null;
-  maxUploadsPerUser: number;
-  maxFileSize: number;
-  allowedFormats: string[];
-  announcement: string | null;
-  createdAt: string;
-};
+import type { WorkWithUser, UploadConfig } from '@/types/work';
 
 export default function HomePage() {
   const { data: session, status } = useSession();
@@ -198,11 +176,11 @@ export default function HomePage() {
         {/* 最新作品轮播 - 突破容器限制，占满整个页面宽度 */}
         {latestWorks.length > 0 && (
           <section className="py-4">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
+            {/* <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
               <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white">
                 🔥 最新作品
               </h2>
-            </div>
+            </div> */}
             {/* 跑马灯容器不受宽度限制 */}
             <div className="w-full">
               <WorkMarquee works={latestWorks} onWorkClick={handleWorkClick} />
@@ -211,18 +189,15 @@ export default function HomePage() {
         )}
 
         {/* 主要内容区域 */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          {/* 热门作品无限滚动 */}
-          <section className="py-4">
+        {/* <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                    <section className="py-4">
             <div className="mb-6">
               <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white">
                 ⭐ 热门作品
-              </h2>
+              </h2>                                                                                                                                                                                                                                                                                                                                                                                               
             </div>
-            
-            {/* 热门作品也突破容器限制 */}
           </section>
-        </main>
+        </main> */}
         
         {/* 热门作品区域移到main外面，占满页面宽度 */}
         <section className="w-full">
@@ -240,6 +215,17 @@ export default function HomePage() {
           // 移除这行，避免重复调用API
           // onLike={() => selectedWork && handleLike(selectedWork.id)}
         />
+        
+        {/* 悬浮上传按钮 */}
+        <button
+          onClick={handleUploadClick}
+          className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white px-8 py-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-3 z-50 font-semibold text-lg"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          <span>上传作品</span>
+        </button>
       </div>
     </ErrorBoundary>
   );

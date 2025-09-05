@@ -14,7 +14,6 @@ interface RouteParams {
 // 作品编辑验证模式
 const WorkEditSchema = z.object({
   name: z.string().min(1, '作品名称不能为空').max(100, '作品名称不能超过100字符').optional(),
-  title: z.string().min(1, '作品简述不能为空').max(200, '作品简述不能超过200字符').optional(),
   description: z.string().max(1000, '作品描述不能超过1000字符').optional(),
   author: z.string().min(1, '作者名不能为空').max(50, '作者名不能超过50字符').optional(),
   prompt: z.string().max(2000, 'AI提示词不能超过2000字符').optional(),
@@ -112,7 +111,7 @@ export async function PUT(
       }, { status: 400 });
     }
 
-    const { name, title, description, author, prompt, imageUrl, status, featured } = validationResult.data;
+    const { name, description, author, prompt, imageUrl, status, featured } = validationResult.data;
 
     // 检查作品是否存在
     const existingWork = await prisma.work.findUnique({
@@ -158,7 +157,6 @@ export async function PUT(
     // 检查是否有实际的内容更改
     const hasContentChanges = (
       (name !== undefined && name !== existingWork.name) ||
-      (title !== undefined && title !== existingWork.title) ||
       (description !== undefined && description !== existingWork.description) ||
       (author !== undefined && author !== existingWork.author) ||
       (prompt !== undefined && prompt !== existingWork.prompt) ||
@@ -169,8 +167,10 @@ export async function PUT(
     const updateData: any = {};
     
     // 更新基本字段
-    if (name !== undefined) updateData.name = name;
-    if (title !== undefined) updateData.title = title;
+    if (name !== undefined) {
+      updateData.name = name;
+      updateData.title = name; // 保持title字段与name同步
+    }
     if (description !== undefined) updateData.description = description;
     if (author !== undefined) updateData.author = author;
     if (prompt !== undefined) updateData.prompt = prompt;
@@ -186,7 +186,6 @@ export async function PUT(
         console.log(`作品 ${id} 检测到内容变化，重新提交审核`);
         console.log('变化详情:', {
           name: name !== undefined && name !== existingWork.name,
-          title: title !== undefined && title !== existingWork.title,
           description: description !== undefined && description !== existingWork.description,
           author: author !== undefined && author !== existingWork.author,
           prompt: prompt !== undefined && prompt !== existingWork.prompt,

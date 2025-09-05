@@ -162,7 +162,7 @@ class EnhancedAPITestSuite {
       console.log('🚀 发送登录请求...');
       const loginData = new URLSearchParams({
         email: 'admin@yunqi.com',
-        password: 'admin123456',
+        password: '123456',
         csrfToken: csrfToken,
         callbackUrl: this.baseURL,
         json: 'true'

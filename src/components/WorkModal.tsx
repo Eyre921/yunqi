@@ -2,21 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Work } from '@prisma/client';
 import ImageViewer from './ImageViewer';
-
-interface WorkModalProps {
-  work: (Work & {
-    user?: {
-      id: string;
-      name: string;
-      email: string;
-    };
-  }) | null;
-  isOpen: boolean;
-  onClose: () => void;
-  onLike?: () => void; // 已经是可选的，保持不变
-}
+import type { WorkModalProps } from '@/types/work';
 
 export default function WorkModal({ work, isOpen, onClose, onLike }: WorkModalProps) {
   const [likeCount, setLikeCount] = useState(0);
@@ -163,7 +150,7 @@ export default function WorkModal({ work, isOpen, onClose, onLike }: WorkModalPr
           {!imageError ? (
             <Image
               src={work.imageUrl}
-              alt={work.name || work.title}
+              alt={work.name || '作品图片'}
               fill
               className="object-contain cursor-pointer hover:opacity-90 transition-opacity"
               onError={() => setImageError(true)}
@@ -194,7 +181,7 @@ export default function WorkModal({ work, isOpen, onClose, onLike }: WorkModalPr
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {work.name || work.title}
+                  {work.name}
                 </h2>
                 {/* 精选标识 - 标题旁版本 */}
                 {work.featured && (
@@ -204,11 +191,8 @@ export default function WorkModal({ work, isOpen, onClose, onLike }: WorkModalPr
                   </div>
                 )}
               </div>
-              <p className="text-gray-600 dark:text-gray-300 mb-2">
-                {work.title}
-              </p>
               <p className="text-gray-500 dark:text-gray-400">
-                作者: {work.author || work.user?.name || '匿名'}
+                作者: {work.author || '匿名'}
               </p>
             </div>
             
@@ -217,11 +201,9 @@ export default function WorkModal({ work, isOpen, onClose, onLike }: WorkModalPr
               {/* 点赞按钮 */}
               <button
                 onClick={handleLike}
-                className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
               >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                </svg>
+                <span className="text-lg">👍</span>
                 {likeCount}
               </button>
               {/* 浏览量显示 */}
@@ -269,7 +251,7 @@ export default function WorkModal({ work, isOpen, onClose, onLike }: WorkModalPr
       {/* 图片查看器 */}
       <ImageViewer
         src={work.imageUrl}
-        alt={work.name || work.title}
+        alt={work.name}
         isOpen={showImageViewer}
         onClose={() => setShowImageViewer(false)}
       />

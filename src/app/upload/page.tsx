@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import LoadingSpinner from '@/components/LoadingSpinner';
@@ -21,7 +20,6 @@ type UploadConfig = {
 
 // 使用 useSearchParams 的组件
 function UploadForm() {
-  const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get('edit');
@@ -31,16 +29,13 @@ function UploadForm() {
   const [configLoading, setConfigLoading] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
-    title: '',
     author: '',
-    prompt: '',
-    description: ''
+    prompt: ''
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [userUploadCount, setUserUploadCount] = useState(0);
   const [isLoadingWork, setIsLoadingWork] = useState(false);
 
   // 获取上传配置
@@ -55,13 +50,6 @@ function UploadForm() {
     }
   }, [isEditMode, editId]);
 
-  // 检查用户上传数量
-  useEffect(() => {
-    if (session?.user) {
-      fetchUserUploadCount();
-    }
-  }, [session]);
-
   const fetchWorkData = async (workId: string) => {
     setIsLoadingWork(true);
     try {
@@ -73,10 +61,8 @@ function UploadForm() {
           // 填充表单数据
           setFormData({
             name: work.name,
-            title: work.title,
             author: work.author,
-            prompt: work.prompt || '',
-            description: work.description || ''
+            prompt: work.prompt || ''
           });
           setImagePreview(work.imageUrl);
         } else {
@@ -110,20 +96,6 @@ function UploadForm() {
     }
   };
 
-  const fetchUserUploadCount = async () => {
-    try {
-      const response = await fetch('/api/works/user-count');
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          setUserUploadCount(result.data.count);
-        }
-      }
-    } catch (err) {
-      console.error('获取用户上传数量失败:', err);
-    }
-  };
-
   // 检查上传权限
   const checkUploadPermission = () => {
     if (!uploadConfig) {
@@ -149,13 +121,6 @@ function UploadForm() {
       return { 
         allowed: false, 
         reason: `上传已于 ${endTime.toLocaleString()} 结束` 
-      };
-    }
-
-    if (userUploadCount >= uploadConfig.maxUploadsPerUser) {
-      return { 
-        allowed: false, 
-        reason: `您已达到最大上传数量限制（${uploadConfig.maxUploadsPerUser}个）` 
       };
     }
 
@@ -215,12 +180,6 @@ function UploadForm() {
       newErrors.name = '作品名称不能超过50个字符';
     }
   
-    if (!formData.title.trim()) {
-      newErrors.title = '作品简述不能为空';
-    } else if (formData.title.length > 300) {
-      newErrors.title = '作品简述不能超过300个字符';
-    }
-  
     if (!formData.author.trim()) {
       newErrors.author = '作者名不能为空';
     } else if (formData.author.length > 15) {
@@ -278,9 +237,7 @@ function UploadForm() {
       // 构建提交数据：编辑模式和新建模式都提交完整的表单数据
       const submitData = {
         name: formData.name.trim(),
-        title: formData.title.trim(),
         author: formData.author.trim(),
-        description: formData.description.trim(),
         prompt: formData.prompt.trim(),
         imageUrl: imageUrl
       };
@@ -335,28 +292,11 @@ function UploadForm() {
     }
   };
 
-  // 登录检查
-  if (status === 'loading' || configLoading || isLoadingWork) {
+  // 加载检查
+  if (configLoading || isLoadingWork) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <LoadingSpinner size="lg" text={isLoadingWork ? '加载作品数据中...' : '加载中...'} />
-      </div>
-    );
-  }
-
-  if (!session) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">请先登录</h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">您需要登录后才能上传作品</p>
-          <button
-            onClick={() => router.push('/auth/signin?callbackUrl=/upload')}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            立即登录
-          </button>
-        </div>
       </div>
     );
   }
@@ -415,10 +355,9 @@ function UploadForm() {
             <div className="text-sm text-yellow-800 dark:text-yellow-200">
               <p className="font-medium mb-1">上传须知：</p>
               <ul className="space-y-1">
-                <li>• 每人最多可上传 {uploadConfig?.maxUploadsPerUser} 个作品（已上传：{userUploadCount}）</li>
                 <li>• 文件大小不超过 {uploadConfig ? Math.floor(uploadConfig.maxFileSize / (1024 * 1024)) : 10}MB</li>
                 <li>• 支持格式：{uploadConfig?.allowedFormats.join(', ')}</li>
-                <li>• 作品需要通过审核后才会公开展示</li>
+                <li>• 作品提交后即可公开展示</li>
               </ul>
             </div>
           </div>
@@ -524,31 +463,6 @@ function UploadForm() {
               </div>
             </div>
 
-            {/* 作品简述 */}
-            <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                作品简述 *
-              </label>
-              <textarea
-                id="title"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                maxLength={300}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white resize-none"
-                placeholder="请简要描述您的作品（最多300字符）"
-              />
-              <div className="flex justify-between mt-1">
-                {errors.title && (
-                  <p className="text-sm text-red-600 dark:text-red-400">{errors.title}</p>
-                )}
-                <p className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
-                  {formData.title.length}/300
-                </p>
-              </div>
-            </div>
-
             {/* 作者名 */}
             <div>
               <label htmlFor="author" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -559,29 +473,19 @@ function UploadForm() {
                 id="author"
                 name="author"
                 value={formData.author}
-                readOnly
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 text-gray-700 dark:text-gray-300 cursor-not-allowed"
-                placeholder="自动获取已登录用户名"
-              />
-              {errors.author && (
-                <p className="text-sm text-red-600 dark:text-red-400">{errors.author}</p>
-              )}
-            </div>
-
-            {/* 创作描述 */}
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                创作描述
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
                 onChange={handleInputChange}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white resize-none"
-                placeholder="可以描述创作过程、灵感来源等（可选）"
+                maxLength={15}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                placeholder="请输入作者名（最多15字符）"
               />
+              <div className="flex justify-between mt-1">
+                {errors.author && (
+                  <p className="text-sm text-red-600 dark:text-red-400">{errors.author}</p>
+                )}
+                <p className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
+                  {formData.author.length}/15
+                </p>
+              </div>
             </div>
 
             {/* Prompt */}

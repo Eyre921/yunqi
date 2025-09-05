@@ -7,7 +7,7 @@ import OnlineCounter from './OnlineCounter';
 
 // 平台配置 - 便于后续修改
 const PLATFORM_CONFIG = {
-  name: '数字化作品展示平台',
+  name: 'Qoder和通义灵码 AI Coding 作品秀',
   homeUrl: '/'
 };
 
@@ -90,57 +90,13 @@ export default function Header({
 
             {/* 右侧：导航和用户操作 */}
             <div className="flex items-center space-x-4">
-              <ThemeToggle />
-              
-              {session ? (
-                <div className="flex items-center space-x-4">
-                  {/* 上传按钮 */}
-                  <button 
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
-                    onClick={handleUploadClick}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    <span>上传作品</span>
-                  </button>
-                  
-                  {/* 个人中心 */}
-                  <button 
-                    className="text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    onClick={handleProfileClick}
-                  >
-                    个人中心
-                  </button>
-                  
-                  <span className="text-gray-700 dark:text-gray-300">
-                    欢迎，{session.user?.name || session.user?.email}
-                  </span>
-                  
-                  {/* 管理后台（仅管理员可见） */}
-                  {session.user?.role === 'ADMIN' && (
-                    <button 
-                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
-                      onClick={handleAdminClick}
-                    >
-                      管理后台
-                    </button>
-                  )}
-                  
-                  {/* 退出登录 */}
-                  <button 
-                    className="text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100"
-                    onClick={handleAuthClick}
-                  >
-                    退出登录
-                  </button>
-                </div>
-              ) : (
+              {/* 隐藏主题切换和登录组件 */}
+              {session?.user?.role === 'ADMIN' && (
                 <button 
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
-                  onClick={handleAuthClick}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
+                  onClick={handleAdminClick}
                 >
-                  注册/登录
+                  管理后台
                 </button>
               )}
             </div>

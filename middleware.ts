@@ -20,10 +20,10 @@ export default withAuth(
       return NextResponse.redirect(new URL('/', req.url));
     }
 
-    // 如果访问上传页面但未登录，重定向到登录页
-    if (isUploadPage && !isAuth) {
-      return NextResponse.redirect(new URL('/auth/signin', req.url));
-    }
+    // 上传页面允许游客访问（无需登录验证）
+    // if (isUploadPage && !isAuth) {
+    //   return NextResponse.redirect(new URL('/auth/signin', req.url));
+    // }
 
     // 如果访问个人中心但未登录，重定向到登录页
     if (isProfilePage && !isAuth) {

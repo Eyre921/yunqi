@@ -1,37 +1,29 @@
 'use client';
 
 import { useState } from 'react';
-import { AdminStats } from './AdminStats';
 import { WorksManagement } from './WorksManagement';
-import { UsersManagement } from './UsersManagement';
 import UploadConfigManagement from './UploadConfigManagement';
 import ThemeToggle from '@/components/ThemeToggle';
 import { signOut } from 'next-auth/react';
 
-type TabType = 'stats' | 'works' | 'users' | 'upload-config';
+type TabType = 'works' | 'upload-config';
 
 export function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<TabType>('stats');
+  const [activeTab, setActiveTab] = useState<TabType>('works');
 
   const tabs = [
-    { id: 'stats' as TabType, name: '统计面板', icon: '📊' },
     { id: 'works' as TabType, name: '作品管理', icon: '🎨' },
-    { id: 'users' as TabType, name: '用户管理', icon: '👥' },
     { id: 'upload-config' as TabType, name: '上传配置', icon: '⚙️' }
   ];
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'stats':
-        return <AdminStats />;
       case 'works':
         return <WorksManagement />;
-      case 'users':
-        return <UsersManagement />;
       case 'upload-config':
         return <UploadConfigManagement />;
       default:
-        return <AdminStats />;
+        return <WorksManagement />;
     }
   };
 

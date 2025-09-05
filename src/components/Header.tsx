@@ -2,12 +2,13 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import ThemeToggle from './ThemeToggle';
 import OnlineCounter from './OnlineCounter';
 
 // 平台配置 - 便于后续修改
 const PLATFORM_CONFIG = {
-  name: 'Qoder和通义灵码 AI Coding 作品秀',
+  name: 'Qcoder和通义灵码 AI Coding 作品秀',
   homeUrl: '/'
 };
 
@@ -26,6 +27,25 @@ export default function Header({
 }: HeaderProps) {
   const { data: session } = useSession();
   const router = useRouter();
+  const [platformTitle, setPlatformTitle] = useState(PLATFORM_CONFIG.name);
+
+  // 获取动态平台标题
+  useEffect(() => {
+    const fetchPlatformConfig = async () => {
+      try {
+        const response = await fetch('/api/platform-config');
+        const data = await response.json();
+        if (data.success) {
+          setPlatformTitle(data.data.title);
+        }
+      } catch (error) {
+        console.error('获取平台配置失败:', error);
+        // 保持默认标题
+      }
+    };
+
+    fetchPlatformConfig();
+  }, []);
 
   const handlePlatformNameClick = () => {
     router.push(PLATFORM_CONFIG.homeUrl);
@@ -53,59 +73,37 @@ export default function Header({
 
   return (
     <>
-      {/* 主导航栏 */}
-      <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* 左侧：平台名称和页面标题 */}
+      {/* 主标题和在线人数横幅 - 作为主要导航区域 */}
+      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white py-6 sticky top-0 z-40">
+        <div className="px-4 sm:px-6 lg:px-8">
+          {/* 主标题、页面标题和在线人数 */}
+          <div className="flex justify-between items-center">
+            {/* 左侧：主标题和页面标题 */}
             <div className="flex items-center space-x-4">
-              {showBackButton && (
-                <button
-                  onClick={() => router.push(backUrl)}
-                  className="text-blue-600 hover:text-blue-500 dark:text-blue-400 font-medium flex items-center space-x-1"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                  <span>{backText}</span>
-                </button>
-              )}
-              
-              <button
+              <h1 
+                className="text-xl md:text-2xl font-bold cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={handlePlatformNameClick}
-                className="text-2xl font-bold gradient-text hover:opacity-80 transition-opacity"
               >
-                {PLATFORM_CONFIG.name}
-              </button>
+                {platformTitle}
+              </h1>
               
               {pageTitle && (
                 <>
-                  <span className="text-gray-400 dark:text-gray-500">|</span>
-                  <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  <span className="text-white/60">|</span>
+                  <h2 className="text-lg md:text-xl font-semibold text-white/90">
                     {pageTitle}
-                  </h1>
+                  </h2>
                 </>
               )}
             </div>
-
-            {/* 右侧：导航和用户操作 */}
-            <div className="flex items-center space-x-4">
-              {/* 隐藏主题切换和登录组件 */}
-              {session?.user?.role === 'ADMIN' && (
-                <button 
-                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
-                  onClick={handleAdminClick}
-                >
-                  管理后台
-                </button>
-              )}
+            
+            {/* 右侧：在线人数 */}
+            <div>
+              <OnlineCounter />
             </div>
           </div>
         </div>
-      </header>
-      
-      {/* 在线人数大横幅 - 紧接着顶栏 */}
-      <OnlineCounter />
+      </div>
     </>
   );
 }

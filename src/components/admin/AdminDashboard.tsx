@@ -3,17 +3,21 @@
 import { useState } from 'react';
 import { WorksManagement } from './WorksManagement';
 import UploadConfigManagement from './UploadConfigManagement';
+import OnlineCounterManagement from './OnlineCounterManagement';
+import PlatformConfigManagement from './PlatformConfigManagement';
 import ThemeToggle from '@/components/ThemeToggle';
 import { signOut } from 'next-auth/react';
 
-type TabType = 'works' | 'upload-config';
+type TabType = 'works' | 'upload-config' | 'online-counter' | 'platform-config';
 
 export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('works');
 
   const tabs = [
     { id: 'works' as TabType, name: '作品管理', icon: '🎨' },
-    { id: 'upload-config' as TabType, name: '上传配置', icon: '⚙️' }
+    { id: 'upload-config' as TabType, name: '上传配置', icon: '⚙️' },
+    { id: 'online-counter' as TabType, name: '在线人数', icon: '👥' },
+    { id: 'platform-config' as TabType, name: '平台配置', icon: '🏠' }
   ];
 
   const renderContent = () => {
@@ -22,6 +26,10 @@ export function AdminDashboard() {
         return <WorksManagement />;
       case 'upload-config':
         return <UploadConfigManagement />;
+      case 'online-counter':
+        return <OnlineCounterManagement />;
+      case 'platform-config':
+        return <PlatformConfigManagement />;
       default:
         return <WorksManagement />;
     }

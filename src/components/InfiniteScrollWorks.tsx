@@ -7,7 +7,8 @@ import type { WorkWithUser, InfiniteScrollWorksProps } from '@/types/work';
 
 export default function InfiniteScrollWorks({ 
   onWorkClick, 
-  worksPerRow = 8 
+  worksPerRow = 8,
+  refreshTrigger = 0
 }: InfiniteScrollWorksProps) {
   const [allWorks, setAllWorks] = useState<WorkWithUser[]>([]);
   const [loading, setLoading] = useState(false);
@@ -65,6 +66,15 @@ export default function InfiniteScrollWorks({
   useEffect(() => {
     loadWorks(1);
   }, []);
+  
+  // 监听刷新触发器，重新加载数据
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      setPage(1);
+      setHasMore(true);
+      loadWorks(1);
+    }
+  }, [refreshTrigger, loadWorks]);
 
   // 设置无限滚动观察器
   useEffect(() => {

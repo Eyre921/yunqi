@@ -140,6 +140,16 @@ model OnlineCounterConfig {
   @@map("online_counter_configs")
 }
 
+// 平台配置模型
+model PlatformConfig {
+  id        String   @id @default(cuid())
+  title     String   @default("Qoder和通义灵码 AI Coding 作品秀") // 平台主标题
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("platform_configs")
+}
+
 // 枚举类型
 enum Role {
   USER

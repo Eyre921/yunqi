@@ -21,11 +21,27 @@ export default function HomePage() {
   const [uploadConfig, setUploadConfig] = useState<UploadConfig | null>(null);
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
   const [isAnnouncementClosed, setIsAnnouncementClosed] = useState(false);
+  const [hotWorksRefreshTrigger, setHotWorksRefreshTrigger] = useState(0);
   const { data, loading, error, execute } = useApi<WorkWithUser[]>();
 
   useEffect(() => {
     fetchLatestWorks();
     fetchUploadConfig();
+    
+    // 设置最新作品自动刷新 - 每1分钟
+    const latestWorksInterval = setInterval(() => {
+      fetchLatestWorks();
+    }, 60 * 1000); // 1分钟
+    
+    // 设置热门作品自动刷新 - 每5分钟
+    const hotWorksInterval = setInterval(() => {
+      setHotWorksRefreshTrigger(prev => prev + 1);
+    }, 5 * 60 * 1000); // 5分钟
+    
+    return () => {
+      clearInterval(latestWorksInterval);
+      clearInterval(hotWorksInterval);
+    };
   }, []);
 
   useEffect(() => {
@@ -216,6 +232,7 @@ export default function HomePage() {
           <InfiniteScrollWorks 
             onWorkClick={handleWorkClick}
             worksPerRow={8}
+            refreshTrigger={hotWorksRefreshTrigger}
           />
         </section>
         

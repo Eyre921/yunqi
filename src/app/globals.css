@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CSS变量定义 */
+:root {
+  --toast-bg: #ffffff;
+  --toast-color: #374151;
+}
+
+.dark {
+  --toast-bg: #374151;
+  --toast-color: #f9fafb;
+}
+
 /* 基础样式重置 */
 * {
   box-sizing: border-box;

@@ -91,4 +91,5 @@ export interface WorkMarqueeProps {
 export interface InfiniteScrollWorksProps {
   onWorkClick: (work: WorkWithUser) => void;
   worksPerRow?: number;
+  refreshTrigger?: number;
 }

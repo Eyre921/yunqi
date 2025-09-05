@@ -3,6 +3,7 @@ import './globals.css';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import SessionWrapper from '@/components/SessionWrapper';
+import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
   title: '数字化作品互动展示平台',
@@ -21,6 +22,16 @@ export default function RootLayout({
           <SessionWrapper>
             <ThemeProvider>
               {children}
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  duration: 3000,
+                  style: {
+                    background: 'var(--toast-bg)',
+                    color: 'var(--toast-color)',
+                  },
+                }}
+              />
             </ThemeProvider>
           </SessionWrapper>
         </ErrorBoundary>

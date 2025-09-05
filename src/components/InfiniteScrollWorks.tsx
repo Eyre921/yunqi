@@ -8,7 +8,8 @@ import type { WorkWithUser, InfiniteScrollWorksProps } from '@/types/work';
 export default function InfiniteScrollWorks({ 
   onWorkClick, 
   worksPerRow = 8,
-  refreshTrigger = 0
+  refreshTrigger = 0,
+  onNewContent
 }: InfiniteScrollWorksProps) {
   const [allWorks, setAllWorks] = useState<WorkWithUser[]>([]);
   const [loading, setLoading] = useState(false);
@@ -30,7 +31,7 @@ export default function InfiniteScrollWorks({
   }
 
   // 加载作品数据
-  const loadWorks = useCallback(async (pageNum: number, isRefresh: boolean = false) => {
+  const loadWorks = useCallback(async (pageNum: number, isRefresh: boolean = false, isSeamlessRefresh: boolean = false) => {
     if (loading) return;
     
     // 只对刷新操作进行防抖，正常滚动加载不防抖
@@ -58,8 +59,39 @@ export default function InfiniteScrollWorks({
       const newWorks = result.data || [];
       
       if (pageNum === 1) {
-        // 首次加载，直接设置
-        setAllWorks(newWorks);
+        if (isSeamlessRefresh) {
+          // 无缝刷新：智能合并数据
+          setAllWorks(prev => {
+            // 创建一个Map来快速查找现有作品
+            const existingWorksMap = new Map(prev.map((work: WorkWithUser) => [work.id, work]));
+            
+            // 更新现有作品的数据（如点赞数等可能变化的字段）
+            const updatedWorks = prev.map((work: WorkWithUser) => {
+              const updatedWork = newWorks.find((newWork: WorkWithUser) => newWork.id === work.id);
+              return updatedWork || work;
+            });
+            
+            // 找出真正的新作品（不在现有列表中的）
+            const reallyNewWorks = newWorks.filter((work: WorkWithUser) => !existingWorksMap.has(work.id));
+            
+            // 如果有新作品，将它们添加到适当位置
+             if (reallyNewWorks.length > 0) {
+               // 通知父组件有新内容
+               onNewContent?.(reallyNewWorks.length);
+               
+               // 对于热门作品，新作品可能需要根据点赞数插入到合适位置
+               // 这里简化处理：将新作品添加到开头，然后重新排序
+               const allCombinedWorks = [...reallyNewWorks, ...updatedWorks];
+               // 按点赞数重新排序，保持热门作品的正确顺序
+               return allCombinedWorks.sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0));
+             }
+            
+            return updatedWorks;
+          });
+        } else {
+          // 首次加载或普通刷新，直接设置
+          setAllWorks(newWorks);
+        }
       } else {
         // 后续加载，严格按照顺序追加到末尾
         setAllWorks(prev => [...prev, ...newWorks]);
@@ -74,21 +106,21 @@ export default function InfiniteScrollWorks({
     } finally {
       setLoading(false);
     }
-  }, [worksPerRow]); // 只依赖worksPerRow，移除loading依赖避免循环
+  }, [worksPerRow, onNewContent]); // 添加onNewContent依赖
 
   // 初始加载
   useEffect(() => {
     loadWorks(1);
-  }, []);
+  }, [loadWorks]);
   
   // 监听刷新触发器，重新加载数据
   useEffect(() => {
     if (refreshTrigger > 0) {
       setPage(1);
       setHasMore(true);
-      loadWorks(1, true); // 传递isRefresh=true进行防抖
+      loadWorks(1, true, true); // 传递isRefresh=true和isSeamlessRefresh=true
     }
-  }, [refreshTrigger, loadWorks])
+  }, [refreshTrigger, loadWorks]);
 
   // 设置无限滚动观察器
   useEffect(() => {
@@ -123,7 +155,15 @@ export default function InfiniteScrollWorks({
         observerRef.current.disconnect();
       }
     };
-  }, [loading, hasMore]); // 移除loadWorks依赖，避免观察器重复创建
+  }, [loading, hasMore]); // 移除loadWorks依赖，避免频繁重创建观察器
+
+  // 当loadWorks函数变化时，重新设置观察器
+  useEffect(() => {
+    if (observerRef.current && loadingRef.current && !loading && hasMore) {
+      observerRef.current.disconnect();
+      observerRef.current.observe(loadingRef.current);
+    }
+  }, [loadWorks, loading, hasMore]);
 
   if (allWorks.length === 0 && loading) {
     return (

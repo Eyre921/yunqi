@@ -22,15 +22,19 @@ export default function HomePage() {
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
   const [isAnnouncementClosed, setIsAnnouncementClosed] = useState(false);
   const [hotWorksRefreshTrigger, setHotWorksRefreshTrigger] = useState(0);
+  const [newContentCount, setNewContentCount] = useState(0);
+  const [showNewContentNotification, setShowNewContentNotification] = useState(false);
+  const [hotWorksNewCount, setHotWorksNewCount] = useState(0);
+  const [showHotWorksNotification, setShowHotWorksNotification] = useState(false);
   const { data, loading, error, execute } = useApi<WorkWithUser[]>();
 
   useEffect(() => {
     fetchLatestWorks();
     fetchUploadConfig();
     
-    // 设置最新作品自动刷新 - 每3分钟
+    // 设置最新作品自动刷新 - 每3分钟（无缝刷新）
     const latestWorksInterval = setInterval(() => {
-      fetchLatestWorks();
+      fetchLatestWorks(true); // 启用无缝刷新
     }, 3 * 60 * 1000); // 3分钟
     
     // 设置热门作品自动刷新 - 每10分钟
@@ -50,9 +54,51 @@ export default function HomePage() {
     }
   }, [data]);
 
-  const fetchLatestWorks = async () => {
-    // 明确指定获取最新作品，按审核时间排序
-    await execute('/api/works?limit=20&status=APPROVED&sortBy=latest');
+  const fetchLatestWorks = async (isSeamlessRefresh = false) => {
+    if (isSeamlessRefresh) {
+      // 无缝刷新：获取最新数据并与现有数据合并
+      try {
+        const response = await fetch('/api/works?limit=20&status=APPROVED&sortBy=latest');
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          const newWorks = result.data;
+          setLatestWorks(prev => {
+             // 创建一个Map来快速查找现有作品
+             const existingWorksMap = new Map(prev.map((work: WorkWithUser) => [work.id, work]));
+             
+             // 找出真正的新作品（不在现有列表中的）
+             const reallyNewWorks = newWorks.filter((work: WorkWithUser) => !existingWorksMap.has(work.id));
+             
+             // 如果有新作品，显示通知
+             if (reallyNewWorks.length > 0) {
+               setNewContentCount(reallyNewWorks.length);
+               setShowNewContentNotification(true);
+               // 3秒后自动隐藏通知
+               setTimeout(() => {
+                 setShowNewContentNotification(false);
+               }, 3000);
+             }
+             
+             // 更新现有作品的数据（如点赞数等可能变化的字段）
+             const updatedExistingWorks = prev.map((work: WorkWithUser) => {
+               const updatedWork = newWorks.find((newWork: WorkWithUser) => newWork.id === work.id);
+               return updatedWork || work;
+             });
+             
+             // 将新作品添加到开头，保持最新作品在前的顺序
+             return [...reallyNewWorks, ...updatedExistingWorks].slice(0, 20);
+           });
+        }
+      } catch (err) {
+        console.error('无缝刷新失败:', err);
+        // 如果无缝刷新失败，回退到普通刷新
+        await execute('/api/works?limit=20&status=APPROVED&sortBy=latest');
+      }
+    } else {
+      // 普通刷新：直接替换数据
+      await execute('/api/works?limit=20&status=APPROVED&sortBy=latest');
+    }
   };
 
   const fetchUploadConfig = async () => {
@@ -169,6 +215,16 @@ export default function HomePage() {
     }
   };
 
+  // 处理热门作品新内容通知
+  const handleHotWorksNewContent = (count: number) => {
+    setHotWorksNewCount(count);
+    setShowHotWorksNotification(true);
+    // 3秒后自动隐藏通知
+    setTimeout(() => {
+      setShowHotWorksNotification(false);
+    }, 3000);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
@@ -196,6 +252,20 @@ export default function HomePage() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
         {/* 使用统一的顶栏组件 */}
         <Header />
+        
+        {/* 新内容通知 */}
+        {showNewContentNotification && (
+          <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
+            <div className="bg-green-500 text-white px-6 py-3 rounded-full shadow-lg flex items-center space-x-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="font-medium">
+                发现 {newContentCount} 个新作品！
+              </span>
+            </div>
+          </div>
+        )}
         
         {/* 移除原来的在线人数计数器位置 */}
         
@@ -228,11 +298,26 @@ export default function HomePage() {
         </main> */}
         
         {/* 热门作品区域移到main外面，占满页面宽度 */}
-        <section className="w-full">
+        <section className="w-full relative">
+          {/* 热门作品新内容通知 */}
+          {showHotWorksNotification && (
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
+              <div className="bg-blue-500 text-white px-6 py-3 rounded-full shadow-lg flex items-center space-x-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span className="font-medium">
+                  热门作品更新了 {hotWorksNewCount} 个！
+                </span>
+              </div>
+            </div>
+          )}
+          
           <InfiniteScrollWorks 
             onWorkClick={handleWorkClick}
             worksPerRow={8}
             refreshTrigger={hotWorksRefreshTrigger}
+            onNewContent={handleHotWorksNewContent}
           />
         </section>
         

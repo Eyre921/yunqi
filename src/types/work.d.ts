@@ -92,4 +92,5 @@ export interface InfiniteScrollWorksProps {
   onWorkClick: (work: WorkWithUser) => void;
   worksPerRow?: number;
   refreshTrigger?: number;
+  onNewContent?: (count: number) => void;
 }

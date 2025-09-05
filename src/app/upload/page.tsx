@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
@@ -19,7 +19,8 @@ type UploadConfig = {
   announcement: string | null;
 };
 
-export default function UploadPage() {
+// 使用 useSearchParams 的组件
+function UploadForm() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -58,15 +59,8 @@ export default function UploadPage() {
   useEffect(() => {
     if (session?.user) {
       fetchUserUploadCount();
-      // 自动设置作者名为已登录用户的名字（仅在新建模式下）
-      if (!isEditMode) {
-        setFormData(prev => ({
-          ...prev,
-          author: session.user.name || session.user.email || ''
-        }));
-      }
     }
-  }, [session, isEditMode]);
+  }, [session]);
 
   const fetchWorkData = async (workId: string) => {
     setIsLoadingWork(true);
@@ -643,5 +637,21 @@ export default function UploadPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// 主页面组件
+export default function UploadPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <LoadingSpinner size="lg" />
+          <p className="mt-4 text-gray-600 dark:text-gray-400">加载中...</p>
+        </div>
+      </div>
+    }>
+      <UploadForm />
+    </Suspense>
   );
 }

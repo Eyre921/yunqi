@@ -43,3 +43,6 @@ next-env.d.ts
 # uploads
 /public/uploads/*
 !/public/uploads/.gitkeep
+/.idea
+/.next
+/.node_modules

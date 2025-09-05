@@ -28,15 +28,15 @@ export default function HomePage() {
     fetchLatestWorks();
     fetchUploadConfig();
     
-    // 设置最新作品自动刷新 - 每1分钟
+    // 设置最新作品自动刷新 - 每3分钟
     const latestWorksInterval = setInterval(() => {
       fetchLatestWorks();
-    }, 60 * 1000); // 1分钟
+    }, 3 * 60 * 1000); // 3分钟
     
-    // 设置热门作品自动刷新 - 每5分钟
+    // 设置热门作品自动刷新 - 每10分钟
     const hotWorksInterval = setInterval(() => {
       setHotWorksRefreshTrigger(prev => prev + 1);
-    }, 5 * 60 * 1000); // 5分钟
+    }, 10 * 60 * 1000); // 10分钟
     
     return () => {
       clearInterval(latestWorksInterval);

@@ -17,6 +17,10 @@ export default function InfiniteScrollWorks({
   const [error, setError] = useState<string | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
+  const lastRefreshTime = useRef<number>(0);
+  const lastLoadTime = useRef<number>(0);
+  const refreshDebounceTime = 5000; // 5秒防抖间隔
+  const loadDebounceTime = 1000; // 1秒加载防抖间隔
 
   // 严格按照顺序将作品分组为行，保持原始顺序
   const workRows: WorkWithUser[][] = [];
@@ -26,8 +30,18 @@ export default function InfiniteScrollWorks({
   }
 
   // 加载作品数据
-  const loadWorks = useCallback(async (pageNum: number) => {
+  const loadWorks = useCallback(async (pageNum: number, isRefresh: boolean = false) => {
     if (loading) return;
+    
+    // 只对刷新操作进行防抖，正常滚动加载不防抖
+    if (isRefresh) {
+      const now = Date.now();
+      if (now - lastLoadTime.current < loadDebounceTime) {
+        console.log('刷新请求被防抖跳过，调用过于频繁');
+        return;
+      }
+      lastLoadTime.current = now;
+    }
     
     setLoading(true);
     setError(null);
@@ -60,7 +74,7 @@ export default function InfiniteScrollWorks({
     } finally {
       setLoading(false);
     }
-  }, [loading, worksPerRow]);
+  }, [worksPerRow]); // 只依赖worksPerRow，移除loading依赖避免循环
 
   // 初始加载
   useEffect(() => {
@@ -72,9 +86,9 @@ export default function InfiniteScrollWorks({
     if (refreshTrigger > 0) {
       setPage(1);
       setHasMore(true);
-      loadWorks(1);
+      loadWorks(1, true); // 传递isRefresh=true进行防抖
     }
-  }, [refreshTrigger, loadWorks]);
+  }, [refreshTrigger, loadWorks])
 
   // 设置无限滚动观察器
   useEffect(() => {
@@ -109,7 +123,7 @@ export default function InfiniteScrollWorks({
         observerRef.current.disconnect();
       }
     };
-  }, [loading, hasMore, loadWorks]);
+  }, [loading, hasMore]); // 移除loadWorks依赖，避免观察器重复创建
 
   if (allWorks.length === 0 && loading) {
     return (

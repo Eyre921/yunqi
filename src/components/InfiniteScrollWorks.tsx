@@ -16,12 +16,26 @@ export default function InfiniteScrollWorks({
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
+  
+  // 使用ref来避免闭包问题
   const loadingRef = useRef<HTMLDivElement>(null);
-  const lastRefreshTime = useRef<number>(0);
-  const lastLoadTime = useRef<number>(0);
-  const refreshDebounceTime = 5000; // 5秒防抖间隔
-  const loadDebounceTime = 1000; // 1秒加载防抖间隔
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const isLoadingRef = useRef(false);
+  const hasMoreRef = useRef(true);
+  const currentPageRef = useRef(1);
+  
+  // 同步状态到ref
+  useEffect(() => {
+    isLoadingRef.current = loading;
+  }, [loading]);
+  
+  useEffect(() => {
+    hasMoreRef.current = hasMore;
+  }, [hasMore]);
+  
+  useEffect(() => {
+    currentPageRef.current = page;
+  }, [page]);
 
   // 严格按照顺序将作品分组为行，保持原始顺序
   const workRows: WorkWithUser[][] = [];
@@ -30,26 +44,27 @@ export default function InfiniteScrollWorks({
     workRows.push(row);
   }
 
-  // 加载作品数据
-  const loadWorks = useCallback(async (pageNum: number, isRefresh: boolean = false, isSeamlessRefresh: boolean = false) => {
-    if (loading) return;
-    
-    // 只对刷新操作进行防抖，正常滚动加载不防抖
-    if (isRefresh) {
-      const now = Date.now();
-      if (now - lastLoadTime.current < loadDebounceTime) {
-        console.log('刷新请求被防抖跳过，调用过于频繁');
-        return;
-      }
-      lastLoadTime.current = now;
+  // 加载作品数据 - 移除useCallback避免依赖问题
+  const loadWorks = async (pageNum: number, isRefresh = false) => {
+    // 防止重复加载
+    if (isLoadingRef.current) {
+      console.log('正在加载中，跳过请求');
+      return;
     }
     
+    // 防止无效请求
+    if (!isRefresh && !hasMoreRef.current && pageNum > 1) {
+      console.log('没有更多数据，跳过请求', { pageNum, hasMore: hasMoreRef.current });
+      return;
+    }
+    
+    console.log('开始加载第', pageNum, '页');
     setLoading(true);
     setError(null);
     
     try {
-      // 明确指定获取热门作品，按点赞数排序
-      const response = await fetch(`/api/works?page=${pageNum}&limit=${worksPerRow * 3}&status=APPROVED&sortBy=popular`);
+      const pageSize = 24;
+      const response = await fetch(`/api/works?page=${pageNum}&limit=${pageSize}&status=APPROVED&sortBy=popular`);
       const result = await response.json();
       
       if (!result.success) {
@@ -57,48 +72,28 @@ export default function InfiniteScrollWorks({
       }
       
       const newWorks = result.data || [];
+      console.log(`第${pageNum}页加载完成，获得${newWorks.length}个作品`);
       
       if (pageNum === 1) {
-        if (isSeamlessRefresh) {
-          // 无缝刷新：智能合并数据
-          setAllWorks(prev => {
-            // 创建一个Map来快速查找现有作品
-            const existingWorksMap = new Map(prev.map((work: WorkWithUser) => [work.id, work]));
-            
-            // 更新现有作品的数据（如点赞数等可能变化的字段）
-            const updatedWorks = prev.map((work: WorkWithUser) => {
-              const updatedWork = newWorks.find((newWork: WorkWithUser) => newWork.id === work.id);
-              return updatedWork || work;
-            });
-            
-            // 找出真正的新作品（不在现有列表中的）
-            const reallyNewWorks = newWorks.filter((work: WorkWithUser) => !existingWorksMap.has(work.id));
-            
-            // 如果有新作品，将它们添加到适当位置
-             if (reallyNewWorks.length > 0) {
-               // 通知父组件有新内容
-               onNewContent?.(reallyNewWorks.length);
-               
-               // 对于热门作品，新作品可能需要根据点赞数插入到合适位置
-               // 这里简化处理：将新作品添加到开头，然后重新排序
-               const allCombinedWorks = [...reallyNewWorks, ...updatedWorks];
-               // 按点赞数重新排序，保持热门作品的正确顺序
-               return allCombinedWorks.sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0));
-             }
-            
-            return updatedWorks;
-          });
-        } else {
-          // 首次加载或普通刷新，直接设置
-          setAllWorks(newWorks);
-        }
+        setAllWorks(newWorks);
       } else {
-        // 后续加载，严格按照顺序追加到末尾
         setAllWorks(prev => [...prev, ...newWorks]);
       }
       
-      // 检查是否还有更多数据
-      setHasMore(newWorks.length === worksPerRow * 3);
+      // 更新hasMore状态
+      if (result.pagination) {
+        const hasMoreData = pageNum < result.pagination.pages && newWorks.length > 0;
+        console.log(`分页信息: ${pageNum}/${result.pagination.pages}页，hasMore=${hasMoreData}`);
+        setHasMore(hasMoreData);
+      } else {
+        const hasMoreData = newWorks.length === pageSize;
+        setHasMore(hasMoreData);
+      }
+      
+      // 通知父组件有新内容
+      if (onNewContent && newWorks.length > 0) {
+        onNewContent(newWorks.length);
+      }
       
     } catch (err) {
       console.error('加载作品失败:', err);
@@ -106,64 +101,85 @@ export default function InfiniteScrollWorks({
     } finally {
       setLoading(false);
     }
-  }, [worksPerRow, onNewContent]); // 添加onNewContent依赖
+  };
+
+  // 手动加载下一页
+  const handleManualLoad = () => {
+    if (!isLoadingRef.current && hasMoreRef.current) {
+      const nextPage = currentPageRef.current + 1;
+      console.log('手动触发加载第', nextPage, '页');
+      setPage(nextPage);
+      loadWorks(nextPage);
+    }
+  };
 
   // 初始加载
   useEffect(() => {
     loadWorks(1);
-  }, [loadWorks]);
+  }, []);
   
-  // 监听刷新触发器，重新加载数据
+  // 监听刷新触发器
   useEffect(() => {
     if (refreshTrigger > 0) {
+      console.log('刷新触发，重新加载数据');
       setPage(1);
       setHasMore(true);
-      loadWorks(1, true, true); // 传递isRefresh=true和isSeamlessRefresh=true
+      loadWorks(1, true);
     }
-  }, [refreshTrigger, loadWorks]);
+  }, [refreshTrigger]);
 
-  // 设置无限滚动观察器
+  // 设置IntersectionObserver
   useEffect(() => {
-    if (loading || !hasMore) return;
-
+    // 清理之前的观察器
     if (observerRef.current) {
       observerRef.current.disconnect();
+      observerRef.current = null;
+    }
+
+    // 检查浏览器支持
+    if (!window.IntersectionObserver) {
+      console.warn('浏览器不支持IntersectionObserver');
+      return;
+    }
+
+    // 只有在有更多数据且元素存在时才创建观察器
+    if (!hasMore || !loadingRef.current) {
+      return;
     }
 
     observerRef.current = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loading) {
-          setPage(prev => {
-            const nextPage = prev + 1;
-            loadWorks(nextPage);
-            return nextPage;
-          });
+        const entry = entries[0];
+        if (entry.isIntersecting && hasMoreRef.current && !isLoadingRef.current) {
+          const nextPage = currentPageRef.current + 1;
+          console.log('自动加载第', nextPage, '页');
+          setPage(nextPage);
+          loadWorks(nextPage);
         }
       },
       {
         threshold: 0.1,
-        rootMargin: '100px'
+        rootMargin: '200px' // 增加边距提高触发概率
       }
     );
 
-    if (loadingRef.current) {
-      observerRef.current.observe(loadingRef.current);
-    }
+    observerRef.current.observe(loadingRef.current);
 
     return () => {
       if (observerRef.current) {
         observerRef.current.disconnect();
       }
     };
-  }, [loading, hasMore]); // 移除loadWorks依赖，避免频繁重创建观察器
+  }, [hasMore, allWorks.length]); // 依赖hasMore和作品数量变化
 
-  // 当loadWorks函数变化时，重新设置观察器
+  // 组件卸载时清理
   useEffect(() => {
-    if (observerRef.current && loadingRef.current && !loading && hasMore) {
-      observerRef.current.disconnect();
-      observerRef.current.observe(loadingRef.current);
-    }
-  }, [loadWorks, loading, hasMore]);
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, []);
 
   if (allWorks.length === 0 && loading) {
     return (
@@ -187,27 +203,15 @@ export default function InfiniteScrollWorks({
   return (
     <div className="space-y-8">
       {workRows.map((rowWorks, rowIndex) => {
-        // 计算当前行在全局的起始位置
         const globalStartIndex = rowIndex * worksPerRow;
         
         return (
           <div key={`row-${rowIndex}`} className="relative">
-            {/* 行标题显示全局顺序信息 - 保持居中但不限制宽度 */}
-            {/* <div className="text-center mb-4 px-4">
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
-                第 {rowIndex + 1} 行 (作品 {globalStartIndex + 1}-{globalStartIndex + rowWorks.length})
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                严格按照数据库顺序排列
-              </p>
-            </div> */}
-            
-            {/* 跑马灯展示，保持作品在行内的顺序 */}
             <WorkMarquee 
               works={rowWorks} 
               onWorkClick={onWorkClick}
-              direction={rowIndex % 2 === 0 ? 'left' : 'right'} // 交替方向
-              speed={25 + (rowIndex % 3) * 5} // 不同速度
+              direction={rowIndex % 2 === 0 ? 'left' : 'right'}
+              speed={25 + (rowIndex % 3) * 5}
             />
           </div>
         );
@@ -217,14 +221,23 @@ export default function InfiniteScrollWorks({
       {hasMore && (
         <div 
           ref={loadingRef} 
-          className="flex items-center justify-center py-8"
+          className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-blue-300 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-600 rounded-lg"
         >
           {loading ? (
             <LoadingSpinner size="md" text="加载更多作品..." />
           ) : (
-            <div className="text-gray-500 dark:text-gray-400">
-              滚动查看更多作品
-            </div>
+            <>
+              <div className="text-gray-500 dark:text-gray-400 mb-4">
+                滚动查看更多作品
+              </div>
+              <button 
+                onClick={handleManualLoad}
+                disabled={loading}
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg transition-colors"
+              >
+                手动加载更多
+              </button>
+            </>
           )}
         </div>
       )}
@@ -234,7 +247,7 @@ export default function InfiniteScrollWorks({
         <div className="text-center py-4">
           <p className="text-red-500 mb-2">{error}</p>
           <button 
-            onClick={() => loadWorks(page)}
+            onClick={() => loadWorks(currentPageRef.current)}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
           >
             重试

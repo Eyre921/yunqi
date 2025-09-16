@@ -307,7 +307,7 @@ export default function HomePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
                 <span className="font-medium">
-                  热门作品更新了 {hotWorksNewCount} 个！
+                  热门作品已更新！
                 </span>
               </div>
             </div>
@@ -330,10 +330,10 @@ export default function HomePage() {
           onWorkUpdate={handleWorkUpdate}
         />
         
-        {/* 悬浮上传按钮 */}
+        {/* 悬浮上传按钮 - 向上移动避免挡住手动加载按钮 */}
         <button
           onClick={handleUploadClick}
-          className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white px-8 py-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-3 z-50 font-semibold text-lg"
+          className="fixed bottom-32 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white px-8 py-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-3 z-50 font-semibold text-lg"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

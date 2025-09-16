@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorMessage from '@/components/ErrorMessage';
+import ImageCropper from '@/components/ImageCropper';
 
 // 上传配置类型
 type UploadConfig = {
@@ -37,6 +38,8 @@ function UploadForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoadingWork, setIsLoadingWork] = useState(false);
+  const [showCropper, setShowCropper] = useState(false);
+  const [originalImageSrc, setOriginalImageSrc] = useState<string>('');
 
   // 获取上传配置
   useEffect(() => {
@@ -160,15 +163,60 @@ function UploadForm() {
       return;
     }
 
-    setImageFile(file);
     setErrors(prev => ({ ...prev, image: '' }));
 
-    // 创建预览
+    // 创建预览并显示裁剪界面
     const reader = new FileReader();
     reader.onload = (e) => {
-      setImagePreview(e.target?.result as string);
+      const imageSrc = e.target?.result as string;
+      setOriginalImageSrc(imageSrc);
+      setShowCropper(true);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleCropComplete = (croppedImageBlob: Blob) => {
+    // 将裁剪后的Blob转换为File对象
+    const croppedFile = new File([croppedImageBlob], 'cropped-image.jpg', {
+      type: 'image/jpeg',
+      lastModified: Date.now(),
+    });
+    
+    setImageFile(croppedFile);
+    
+    // 创建预览URL
+    const previewUrl = URL.createObjectURL(croppedImageBlob);
+    setImagePreview(previewUrl);
+    
+    // 关闭裁剪界面，但保留原始图片数据以便重新裁剪
+    setShowCropper(false);
+  };
+
+  const handleSkipCrop = (originalImageBlob: Blob) => {
+    // 将原图Blob转换为File对象，保持高质量
+    const originalFile = new File([originalImageBlob], 'original-image.jpg', {
+      type: 'image/jpeg',
+      lastModified: Date.now(),
+    });
+    
+    setImageFile(originalFile);
+    
+    // 创建预览URL
+    const previewUrl = URL.createObjectURL(originalImageBlob);
+    setImagePreview(previewUrl);
+    
+    // 关闭裁剪界面，但保留原始图片数据以便重新裁剪
+    setShowCropper(false);
+  };
+
+  const handleCropCancel = () => {
+    setShowCropper(false);
+    setOriginalImageSrc('');
+    // 清空文件输入
+    const fileInput = document.getElementById('image-upload') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
   };
 
   const validateForm = () => {
@@ -386,8 +434,8 @@ function UploadForm() {
                         src={imagePreview}
                         alt="预览"
                         width={300}
-                        height={200}
-                        className="rounded-lg object-cover"
+                        height={169}
+                        className="rounded-lg object-cover aspect-video"
                       />
                       <button
                         type="button"
@@ -395,22 +443,44 @@ function UploadForm() {
                           e.stopPropagation();
                           setImageFile(null);
                           setImagePreview('');
+                          setOriginalImageSrc('');
+                          // 清空文件输入
+                          const fileInput = document.getElementById('image-upload') as HTMLInputElement;
+                          if (fileInput) {
+                            fileInput.value = '';
+                          }
                         }}
                         className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors"
                       >
                         ×
                       </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        document.getElementById('image-upload')?.click();
-                      }}
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      点击重新选择图片
-                    </button>
+                    <div className="flex space-x-4">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (originalImageSrc) {
+                            setShowCropper(true);
+                          } else {
+                            document.getElementById('image-upload')?.click();
+                          }
+                        }}
+                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        📐 重新裁剪
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          document.getElementById('image-upload')?.click();
+                        }}
+                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        🔄 重新选择图片
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -422,6 +492,9 @@ function UploadForm() {
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-500">
                       支持 {uploadConfig?.allowedFormats.join(', ')} 格式，最大 {uploadConfig ? Math.floor(uploadConfig.maxFileSize / (1024 * 1024)) : 10}MB
+                    </p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                      📐 图片将自动裁剪为 16:9 比例以确保最佳展示效果
                     </p>
                   </div>
                 )}
@@ -540,6 +613,16 @@ function UploadForm() {
           </form>
         </div>
       </div>
+      
+      {/* 图片裁剪组件 */}
+      {showCropper && (
+        <ImageCropper
+          src={originalImageSrc}
+          onCropComplete={handleCropComplete}
+          onSkipCrop={handleSkipCrop}
+          onCancel={handleCropCancel}
+        />
+      )}
     </div>
   );
 }

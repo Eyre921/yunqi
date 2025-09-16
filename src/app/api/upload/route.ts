@@ -19,14 +19,8 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    // 检查用户认证
+    // 移除登录验证，允许游客上传图片
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({
-        success: false,
-        error: '请先登录'
-      }, { status: 401 });
-    }
 
     // 获取表单数据
     const formData = await request.formData();

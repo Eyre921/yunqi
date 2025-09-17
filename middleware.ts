@@ -10,9 +10,11 @@ export default withAuth(
     const isUploadPage = req.nextUrl.pathname.startsWith('/upload');
     const isProfilePage = req.nextUrl.pathname.startsWith('/profile');
 
-    // 如果访问认证页面且已登录，重定向到首页
+    // 如果访问认证页面且已登录，根据角色重定向
     if (isAuthPage && isAuth) {
-      return NextResponse.redirect(new URL('/', req.url));
+      // 管理员重定向到管理页面，普通用户重定向到首页
+      const redirectUrl = token?.role === 'ADMIN' ? '/admin' : '/';
+      return NextResponse.redirect(new URL(redirectUrl, req.url));
     }
 
     // 如果访问管理页面但不是管理员，重定向到首页

@@ -64,7 +64,9 @@ export const authOptions: NextAuthOptions = {
     }
   },
   pages: {
-    signIn: '/auth/signin', // 修改为前端登录页面路径
+    signIn: '/auth/signin',
   },
   secret: process.env.NEXTAUTH_SECRET,
+  // 移除这行，因为 url 不是 NextAuthOptions 的有效属性
+  // url: process.env.NEXTAUTH_URL,
 };

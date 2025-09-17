@@ -32,8 +32,16 @@ function SignInForm() {
       if (result?.error) {
         setError('邮箱或密码错误');
       } else {
-        // 登录成功，重定向到回调URL
-        router.push(callbackUrl);
+        // 获取用户会话信息来确定重定向目标
+        const session = await getSession();
+        let redirectUrl = callbackUrl;
+        
+        // 如果没有指定回调URL且用户是管理员，重定向到管理页面
+        if (callbackUrl === '/' && session?.user?.role === 'ADMIN') {
+          redirectUrl = '/admin';
+        }
+        
+        router.push(redirectUrl);
       }
     } catch (error) {
       setError('登录失败，请稍后重试');

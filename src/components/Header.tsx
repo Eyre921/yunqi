@@ -48,7 +48,7 @@ export default function Header({
   }, []);
 
   const handlePlatformNameClick = () => {
-    router.push(PLATFORM_CONFIG.homeUrl);
+    window.location.href = 'https://qoder.com/download';
   };
 
   const handleProfileClick = () => {

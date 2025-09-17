@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { deleteFromOSS } from '@/lib/oss';
 import { prisma } from '@/lib/prisma';
 import { Role, WorkStatus } from '@prisma/client';
 import { z } from 'zod';
@@ -264,50 +265,62 @@ export async function PUT(
 export async function DELETE(
   request: NextRequest,
   { params }: RouteParams
-) {
+): Promise<NextResponse> {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
-        { error: '未授权访问' },
+        { success: false, error: '请先登录' },
         { status: 401 }
       );
     }
 
     const { id } = await params;
-
-    // 检查作品是否存在
-    const existingWork = await prisma.work.findUnique({
+    
+    // 查找作品
+    const work = await prisma.work.findUnique({
       where: { id }
     });
 
-    if (!existingWork) {
+    if (!work) {
       return NextResponse.json(
-        { error: '作品不存在' },
+        { success: false, error: '作品不存在' },
         { status: 404 }
       );
     }
 
-    // 检查权限：只有作品创建者或管理员可以删除
-    if (existingWork.userId !== session.user.id && session.user.role !== Role.ADMIN) {
+    // 检查权限（只有作者或管理员可以删除）
+    if (work.userId !== session.user.id && session.user.role !== Role.ADMIN) {
       return NextResponse.json(
-        { error: '权限不足' },
+        { success: false, error: '权限不足' },
         { status: 403 }
       );
     }
 
+    // 从OSS删除文件
+    if (work.imagePath) {
+      try {
+        await deleteFromOSS(work.imagePath);
+      } catch (error) {
+        console.error('OSS删除失败:', error);
+        // 继续删除数据库记录，即使OSS删除失败
+      }
+    }
+
+    // 从数据库删除
     await prisma.work.delete({
       where: { id }
     });
 
-    return NextResponse.json(
-      { message: '作品删除成功' },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      success: true,
+      message: '删除成功'
+    });
+
   } catch (error) {
-    console.error('删除作品失败:', error);
+    console.error('删除失败:', error);
     return NextResponse.json(
-      { error: '删除作品失败' },
+      { success: false, error: '删除失败，请重试' },
       { status: 500 }
     );
   }

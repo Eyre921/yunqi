@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 import { Role, WorkStatus } from '@prisma/client';
 import { z } from 'zod';
+import { deleteFromOSS } from '@/lib/oss';
 
 // 作品审核验证模式
 const WorkReviewSchema = z.object({
@@ -156,6 +157,94 @@ export async function GET(
     return NextResponse.json({
       success: false,
       error: '服务器内部错误',
+      code: 'INTERNAL_ERROR'
+    }, { status: 500 });
+  }
+}
+
+// DELETE /api/admin/works/[id] - 管理员删除单个作品
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<NextResponse> {
+  try {
+    const session = await getServerSession(authOptions);
+    const { id } = await params;
+    
+    if (!session?.user || session.user.role !== Role.ADMIN) {
+      return NextResponse.json({
+        success: false,
+        error: '权限不足',
+        code: 'FORBIDDEN'
+      }, { status: 403 });
+    }
+
+    // 查找作品
+    const work = await prisma.work.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        ossKey: true,
+        imagePath: true,
+        name: true,
+        user: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    });
+
+    if (!work) {
+      return NextResponse.json({
+        success: false,
+        error: '作品不存在',
+        code: 'NOT_FOUND'
+      }, { status: 404 });
+    }
+
+    // 从OSS删除文件
+    if (work.ossKey || work.imagePath) {
+      try {
+        const ossKey = work.ossKey || work.imagePath;
+        if (ossKey) {
+          await deleteFromOSS(ossKey);
+          console.log(`管理员删除OSS文件成功: ${ossKey}`);
+        }
+      } catch (ossError) {
+        console.error('OSS文件删除失败:', ossError);
+        // 继续删除数据库记录，即使OSS删除失败
+      }
+    }
+
+    // 删除数据库记录
+    await prisma.work.delete({
+      where: { id }
+    });
+
+    console.log(`管理员删除作品: ${work.name} (ID: ${id}), 用户: ${work.user?.name || '未知用户'}`);
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        deletedWork: {
+          id: work.id,
+          name: work.name,
+          user: work.user ? {
+            id: work.user.id,
+            name: work.user.name
+          } : null
+        }
+      },
+      message: '作品删除成功'
+    });
+
+  } catch (error) {
+    console.error('管理员删除作品失败:', error);
+    return NextResponse.json({
+      success: false,
+      error: '删除作品失败',
       code: 'INTERNAL_ERROR'
     }, { status: 500 });
   }

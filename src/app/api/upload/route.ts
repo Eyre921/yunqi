@@ -1,93 +1,150 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
-
-// 支持的文件类型
-const ALLOWED_TYPES = {
-  'image/jpeg': 'jpg',
-  'image/jpg': 'jpg',
-  'image/png': 'png',
-  'image/gif': 'gif',
-  'image/webp': 'webp'
-};
-
-// 最大文件大小 (10MB)
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+import { uploadToOSS } from '@/lib/oss';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    // 移除登录验证，允许游客上传图片
+    // 验证用户登录
     const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: '请先登录' },
+        { status: 401 }
+      );
+    }
+
+    // 获取上传配置
+    const uploadConfig = await prisma.uploadConfig.findFirst({
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (!uploadConfig) {
+      return NextResponse.json({
+        success: false,
+        error: '上传配置未找到',
+        code: 'CONFIG_NOT_FOUND'
+      }, { status: 500 });
+    }
+
+    // 检查上传功能是否开启
+    if (!uploadConfig.isEnabled) {
+      return NextResponse.json({
+        success: false,
+        error: '管理员已关闭上传功能',
+        code: 'UPLOAD_DISABLED'
+      }, { status: 403 });
+    }
+
+    // 检查时间窗口
+    const now = new Date();
+    if (uploadConfig.startTime && now < new Date(uploadConfig.startTime)) {
+      return NextResponse.json({
+        success: false,
+        error: `上传将于 ${new Date(uploadConfig.startTime).toLocaleString()} 开始`,
+        code: 'UPLOAD_NOT_STARTED'
+      }, { status: 403 });
+    }
+
+    if (uploadConfig.endTime && now > new Date(uploadConfig.endTime)) {
+      return NextResponse.json({
+        success: false,
+        error: `上传已于 ${new Date(uploadConfig.endTime).toLocaleString()} 结束`,
+        code: 'UPLOAD_ENDED'
+      }, { status: 403 });
+    }
 
     // 获取表单数据
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+    const tags = formData.get('tags') as string;
 
     if (!file) {
+      return NextResponse.json(
+        { success: false, error: '请选择文件' },
+        { status: 400 }
+      );
+    }
+
+    // 文件类型验证
+    const allowedTypes = uploadConfig.allowedFormats.map(format => `image/${format === 'jpg' ? 'jpeg' : format}`);
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json(
+        { success: false, error: `不支持的文件类型，仅支持：${uploadConfig.allowedFormats.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    // 文件大小验证
+    if (file.size > uploadConfig.maxFileSize) {
+      const maxSizeMB = Math.floor(uploadConfig.maxFileSize / (1024 * 1024));
+      return NextResponse.json(
+        { success: false, error: `文件大小不能超过${maxSizeMB}MB` },
+        { status: 400 }
+      );
+    }
+
+    // 检查用户上传数量限制
+    const userUploadCount = await prisma.work.count({
+      where: { userId: session.user.id }
+    });
+
+    if (userUploadCount >= uploadConfig.maxUploadsPerUser) {
       return NextResponse.json({
         success: false,
-        error: '请选择文件'
-      }, { status: 400 });
+        error: `每个用户最多只能上传${uploadConfig.maxUploadsPerUser}个作品`,
+        code: 'UPLOAD_LIMIT_EXCEEDED'
+      }, { status: 403 });
     }
 
-    // 验证文件类型
-    if (!ALLOWED_TYPES[file.type as keyof typeof ALLOWED_TYPES]) {
-      return NextResponse.json({
-        success: false,
-        error: '不支持的文件格式，请上传 JPG、PNG、GIF 或 WebP 格式的图片'
-      }, { status: 400 });
-    }
+    // 上传到OSS（使用增强功能）
+    const uploadResult = await uploadToOSS(file, file.name, {
+      headers: {
+        'x-oss-storage-class': 'Standard',
+        'x-oss-object-acl': 'public-read',
+        'Content-Type': file.type,
+        'x-oss-tagging': `userId=${session.user.id}&uploadTime=${Date.now()}`
+      },
+      folder: 'works'
+    });
 
-    // 验证文件大小
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({
-        success: false,
-        error: '文件大小不能超过 10MB'
-      }, { status: 400 });
-    }
-
-    // 生成唯一文件名
-    const timestamp = Date.now();
-    const randomStr = Math.random().toString(36).substring(2, 15);
-    const extension = ALLOWED_TYPES[file.type as keyof typeof ALLOWED_TYPES];
-    const fileName = `${timestamp}_${randomStr}.${extension}`;
-
-    // 确保上传目录存在
-    const uploadDir = join(process.cwd(), 'public', 'images');
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
-    }
-
-    // 保存文件
-    const filePath = join(uploadDir, fileName);
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    
-    await writeFile(filePath, buffer);
-
-    // 返回文件URL
-    const imageUrl = `/images/${fileName}`;
+    // 保存到数据库
+    const work = await prisma.work.create({
+      data: {
+        name: title || '未命名作品',
+        title: title || '未命名作品',
+        description: description || '',
+        author: session.user.name || session.user.email || '匿名用户',
+        imageUrl: uploadResult.url,
+        imagePath: uploadResult.name,
+        ossKey: uploadResult.name,
+        ossUrl: uploadResult.url,
+        fileSize: BigInt(uploadResult.size || file.size),
+        mimeType: file.type,
+        tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
+        userId: session.user.id
+      }
+    });
 
     return NextResponse.json({
       success: true,
       data: {
-        imageUrl,
-        fileName,
-        fileSize: file.size,
-        fileType: file.type
-      },
-      message: '文件上传成功'
-    }, { status: 200 });
+        id: work.id,
+        title: work.title,
+        imageUrl: work.imageUrl,
+        ossKey: work.ossKey,
+        message: '上传成功'
+      }
+    });
 
   } catch (error) {
-    console.error('文件上传失败:', error);
-    return NextResponse.json({
-      success: false,
-      error: '文件上传失败',
-      code: 'UPLOAD_ERROR'
-    }, { status: 500 });
+    console.error('上传失败:', error);
+    return NextResponse.json(
+      { success: false, error: '上传失败，请重试' },
+      { status: 500 }
+    );
   }
 }

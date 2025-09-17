@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import { getImageUrl } from '@/lib/image-url';
 
 interface ImageViewerProps {
   src: string;
@@ -18,6 +19,9 @@ export default function ImageViewer({ src, alt, isOpen, onClose }: ImageViewerPr
   const [imageLoaded, setImageLoaded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
+
+  // 计算可用的图片地址（兼容 OSS、本地、完整 URL）
+  const imageUrl = getImageUrl(src);
 
   // 重置状态
   const resetView = () => {
@@ -189,7 +193,7 @@ export default function ImageViewer({ src, alt, isOpen, onClose }: ImageViewerPr
             </div>
           )}
           <Image
-            src={src}
+            src={imageUrl}
             alt={alt}
             width={1200}
             height={800}

@@ -8,6 +8,7 @@ import { WorkStatus } from '@prisma/client';
 import { useDebounce } from '@/hooks/useDebounce';
 import Image from 'next/image';
 import type { WorkWithUser, WorksResponse, SortBy, SortOrder } from '@/types/work';
+import { getImageUrl } from '@/lib/image-url';
 
 export function WorksManagement() {
   const [works, setWorks] = useState<WorkWithUser[]>([]);
@@ -279,7 +280,7 @@ export function WorksManagement() {
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-16 w-16">
                             <Image
-                              src={work.imageUrl}
+                              src={getImageUrl(work.imageUrl)}
                               alt={work.name || '作品图片'}
                               width={64}
                               height={64}
@@ -446,7 +447,7 @@ export function WorksManagement() {
                 {/* 作品图片 */}
                 <div className="space-y-4">
                   <Image
-                    src={selectedWork.imageUrl}
+                    src={getImageUrl(selectedWork.imageUrl)}
                     alt={selectedWork.name || '作品图片'}
                     width={500}
                     height={500}
@@ -564,6 +565,4 @@ export function WorksManagement() {
           </div>
         </div>
       )}
-    </>
-  );
-}
+    </>);}

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { getImageUrl } from '@/lib/image-url';
 import type { WorkCardProps } from '@/types/work';
 
 export default function WorkCard({ work, onClick, onLike }: WorkCardProps) {
@@ -12,6 +13,9 @@ export default function WorkCard({ work, onClick, onLike }: WorkCardProps) {
     e.stopPropagation(); // 防止触发卡片点击事件
     onLike?.();
   };
+  
+  // 获取处理后的图片URL
+  const imageUrl = getImageUrl(work.imageUrl);
   
   return (
     <div 
@@ -31,7 +35,7 @@ export default function WorkCard({ work, onClick, onLike }: WorkCardProps) {
         
         {!imageError ? (
           <Image
-            src={work.imageUrl}
+            src={imageUrl}
             alt={work.name || '作品图片'}
             fill
             className={`object-cover transition-opacity duration-300 ${

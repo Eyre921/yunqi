@@ -1,8 +1,10 @@
 'use client';
 
+import React from 'react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import ImageViewer from './ImageViewer';
+import { getImageUrl } from '@/lib/image-url';
 import type { WorkModalProps } from '@/types/work';
 
 export default function WorkModal({ work, isOpen, onClose, onLike, onWorkUpdate }: WorkModalProps) {
@@ -12,6 +14,9 @@ export default function WorkModal({ work, isOpen, onClose, onLike, onWorkUpdate 
   const [copySuccess, setCopySuccess] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [showImageViewer, setShowImageViewer] = useState(false);
+  
+  // 获取处理后的图片URL
+  const imageUrl = work ? getImageUrl(work.imageUrl) : '';
   
   const handleLike = async () => {
     if (!work) return;
@@ -177,7 +182,7 @@ export default function WorkModal({ work, isOpen, onClose, onLike, onWorkUpdate 
         <div className="relative aspect-video bg-gray-100 dark:bg-gray-700">
           {!imageError ? (
             <Image
-              src={work.imageUrl}
+              src={imageUrl}
               alt={work.name || '作品图片'}
               fill
               className="object-contain cursor-pointer hover:opacity-90 transition-opacity"
@@ -278,7 +283,7 @@ export default function WorkModal({ work, isOpen, onClose, onLike, onWorkUpdate 
       </div>
       {/* 图片查看器 */}
       <ImageViewer
-        src={work.imageUrl}
+        src={imageUrl}
         alt={work.name}
         isOpen={showImageViewer}
         onClose={() => setShowImageViewer(false)}

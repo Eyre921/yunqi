@@ -1,9 +1,12 @@
+// 顶部 imports
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 import { Role, WorkStatus } from '@prisma/client';
 import { z } from 'zod';
+import { deleteMultipleFromOSS } from '@/lib/oss';
+import { toPlainJSON } from '@/lib/serialize';
 
 // 作品查询验证模式
 const WorkQuerySchema = z.object({
@@ -79,17 +82,20 @@ export async function GET(request: NextRequest) {
       prisma.work.count({ where })
     ]);
 
+    // 关键修复：在返回前将 BigInt 等不可序列化类型转换为 JSON 安全值
+    const safeData = toPlainJSON({
+      works,
+      pagination: {
+        page: query.page,
+        limit: query.limit,
+        total,
+        totalPages: Math.ceil(total / query.limit)
+      }
+    });
+
     return NextResponse.json({
       success: true,
-      data: {
-        works,
-        pagination: {
-          page: query.page,
-          limit: query.limit,
-          total,
-          totalPages: Math.ceil(total / query.limit)
-        }
-      }
+      data: safeData
     });
   } catch (error) {
     console.error('获取作品列表失败:', error);
@@ -106,6 +112,84 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: false,
       error: '服务器内部错误',
+      code: 'INTERNAL_ERROR'
+    }, { status: 500 });
+  }
+}
+
+// DELETE /api/admin/works - 批量删除作品
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user || session.user.role !== Role.ADMIN) {
+      return NextResponse.json({
+        success: false,
+        error: '权限不足',
+        code: 'FORBIDDEN'
+      }, { status: 403 });
+    }
+
+    const { workIds } = await request.json();
+    
+    if (!Array.isArray(workIds) || workIds.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: '请提供要删除的作品ID列表',
+        code: 'INVALID_INPUT'
+      }, { status: 400 });
+    }
+
+    // 获取要删除的作品信息
+    const works = await prisma.work.findMany({
+      where: {
+        id: { in: workIds }
+      },
+      select: {
+        id: true,
+        ossKey: true,
+        imagePath: true,
+        name: true
+      }
+    });
+
+    // 收集OSS文件键名
+    const ossKeys = works
+      .map(work => work.ossKey || work.imagePath)
+      .filter(Boolean) as string[];
+
+    // 批量删除OSS文件
+    if (ossKeys.length > 0) {
+      try {
+        const deleteResult = await deleteMultipleFromOSS(ossKeys);
+        console.log('OSS批量删除结果:', deleteResult);
+      } catch (ossError) {
+        console.error('OSS批量删除失败:', ossError);
+        // 继续删除数据库记录
+      }
+    }
+
+    // 批量删除数据库记录
+    const deleteResult = await prisma.work.deleteMany({
+      where: {
+        id: { in: workIds }
+      }
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        deletedCount: deleteResult.count,
+        ossFilesDeleted: ossKeys.length
+      },
+      message: `成功删除 ${deleteResult.count} 个作品`
+    });
+
+  } catch (error) {
+    console.error('批量删除作品失败:', error);
+    return NextResponse.json({
+      success: false,
+      error: '批量删除失败',
       code: 'INTERNAL_ERROR'
     }, { status: 500 });
   }

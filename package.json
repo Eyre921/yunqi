@@ -10,7 +10,10 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "test:oss": "node run-oss-test.js",
+    "test:oss-full": "tsx test-oss.ts",
+    "test:oss-buckets": "node -e \"require('dotenv').config(); const OSS = require('ali-oss'); const client = new OSS({region: process.env.ALI_OSS_REGION, accessKeyId: process.env.ALI_OSS_ACCESS_KEY_ID, accessKeySecret: process.env.ALI_OSS_ACCESS_KEY_SECRET, authorizationV4: true}); client.listBuckets().then(r => console.log('存储空间:', r.buckets?.map(b => b.name))).catch(console.error);\""
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -20,11 +23,13 @@
     "@prisma/client": "^5.20.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/pg": "^8.15.5",
+    "ali-oss": "^6.23.0",
     "axios": "^1.11.0",
     "axios-cookiejar-support": "^6.0.4",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.5.0",
-    "next": "15.1.0",
+    "dotenv": "^17.2.2",
+    "next": "^15.5.3",
     "next-auth": "^4.24.11",
     "pg": "^8.16.3",
     "react": "^19",
@@ -37,6 +42,7 @@
   },
   "devDependencies": {
     "@tailwindcss/line-clamp": "^0.4.4",
+    "@types/ali-oss": "^6.16.11",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",

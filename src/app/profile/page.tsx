@@ -12,6 +12,8 @@ import Image from 'next/image';
 
 import type { UserWork, WorksData } from '@/types/work';
 
+import { getImageUrl } from '@/lib/image-url';
+
 interface UserProfile {
   id: string;
   name: string;
@@ -445,7 +447,8 @@ export default function ProfilePage() {
                           <div key={work.id} className="bg-white dark:bg-gray-700 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
                             <div className="relative aspect-video">
                               <Image
-                                src={work.imageUrl}
+                                // 示例：src={getImageUrl(work.imageUrl)}
+                                src={getImageUrl(work.imageUrl)}
                                 alt={work.name}
                                 fill
                                 className="object-cover"

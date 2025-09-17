@@ -48,7 +48,14 @@ export default function Header({
   }, []);
 
   const handlePlatformNameClick = () => {
-    window.location.href = 'https://qoder.com/download';
+    try {
+      // 在新标签页中打开链接
+      window.open('https://qoder.com/download', '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      console.error('打开链接失败:', error);
+      // 备用方案：在当前页面打开
+      window.location.href = 'https://qoder.com/download';
+    }
   };
 
   const handleProfileClick = () => {

@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import fs from 'fs';
 import path from 'path';
+import { deleteFromOSS } from '@/lib/oss';
 
 // GET /api/user/works/[id] - 获取单个作品详情
 export async function GET(
@@ -99,20 +100,17 @@ export async function DELETE(
       }, { status: 404 });
     }
 
-    // 删除作品文件（如果存在）
-    if (work.imageUrl) {
+    // 从OSS删除文件
+    if (work.ossKey || work.imagePath) {
       try {
-        // 从URL中提取文件名
-        const fileName = work.imageUrl.split('/').pop();
-        if (fileName) {
-          const filePath = path.join(process.cwd(), 'public', 'uploads', fileName);
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
+        const ossKey = work.ossKey || work.imagePath;
+        if (ossKey) {
+          await deleteFromOSS(ossKey);
+          console.log(`OSS文件删除成功: ${ossKey}`);
         }
-      } catch (fileError) {
-        console.warn('删除作品文件失败:', fileError);
-        // 文件删除失败不影响数据库删除
+      } catch (ossError) {
+        console.error('OSS文件删除失败:', ossError);
+        // 继续删除数据库记录，即使OSS删除失败
       }
     }
 

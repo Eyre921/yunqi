@@ -1,3 +1,4 @@
+// 顶部 import：删除 ErrorBoundary 引入
 import type { Metadata } from 'next';
 import './globals.css';
 import { ThemeProvider } from '@/contexts/ThemeContext';
@@ -18,23 +19,23 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <ErrorBoundary>
-          <SessionWrapper>
-            <ThemeProvider>
-              {children}
-              <Toaster
-                position="top-right"
-                toastOptions={{
-                  duration: 3000,
-                  style: {
-                    background: 'var(--toast-bg)',
-                    color: 'var(--toast-color)',
-                  },
-                }}
-              />
-            </ThemeProvider>
-          </SessionWrapper>
-        </ErrorBoundary>
+        {/* 移除了 <ErrorBoundary> 顶层包裹 */}
+        <SessionWrapper>
+          <ThemeProvider>
+            {children}
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 3000,
+                style: {
+                  background: 'var(--toast-bg)',
+                  color: 'var(--toast-color)',
+                },
+              }}
+            />
+          </ThemeProvider>
+        </SessionWrapper>
+        {/* 移除了 </ErrorBoundary> */}
       </body>
     </html>
   );

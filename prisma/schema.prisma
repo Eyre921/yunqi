@@ -75,13 +75,19 @@ model VerificationToken {
 
 // 作品模型
 model Work {
-  id          String     @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String     // 作品名字
   title       String     // 作品简述
-  description String?    // 作品详细描述 - 新增字段
+  description String?    // 作品详细描述
   author      String     // 作者名
   prompt      String?    // AI生成提示词
   imageUrl    String     // 图片URL
+  imagePath   String?    // OSS文件路径/键名
+  ossKey      String?    // OSS文件键名
+  ossUrl      String?    // OSS完整访问URL
+  fileSize    BigInt?    // 文件大小
+  mimeType    String?    // 文件类型
+  tags        String[]   @default([]) // 标签数组
   status      WorkStatus @default(PENDING) // 审核状态
   featured    Boolean    @default(false) // 精选标记
   likeCount   Int        @default(0) // 点赞数

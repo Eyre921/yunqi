@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { toPlainJSON } from '@/lib/serialize';
 
 // 查询参数验证模式
 const WorksQuerySchema = z.object({
@@ -83,19 +84,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const totalPages = Math.ceil(total / limit);
 
+    const safeData = toPlainJSON({
+      works,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
+      }
+    });
+
     return NextResponse.json({
       success: true,
-      data: {
-        works,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages,
-          hasNext: page < totalPages,
-          hasPrev: page > 1
-        }
-      },
+      data: safeData,
       message: '获取作品列表成功'
     });
 

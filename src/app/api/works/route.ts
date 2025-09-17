@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { WorkStatus } from '@prisma/client';
+import { z } from 'zod';
+import { toPlainJSON } from '@/lib/serialize';
 
 // GET /api/works - 获取作品列表
 export async function GET(request: NextRequest) {
@@ -66,15 +68,19 @@ export async function GET(request: NextRequest) {
       prisma.work.count({ where })
     ]);
 
-    return NextResponse.json({
-      success: true,
-      data: works,
+    const safeData = toPlainJSON({
+      works,
       pagination: {
         page,
         limit,
         total,
         pages: Math.ceil(total / limit)
-      },
+      }
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: safeData,
       message: '获取作品列表成功'
     }, { status: 200 });
   } catch (error) {

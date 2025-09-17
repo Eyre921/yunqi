@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { Role, WorkStatus } from '@prisma/client';
 import { z } from 'zod';
 import { deleteFromOSS } from '@/lib/oss';
+import { toPlainJSON } from '@/lib/serialize';
 
 // 作品审核验证模式
 const WorkReviewSchema = z.object({
@@ -86,7 +87,7 @@ export async function PATCH(
 
     return NextResponse.json({
       success: true,
-      data: updatedWork,
+      data: toPlainJSON(updatedWork),
       message: `作品已${validatedData.status === 'APPROVED' ? '通过审核' : validatedData.status === 'REJECTED' ? '被拒绝' : '更新状态'}`
     });
 
@@ -150,7 +151,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      data: work
+      data: toPlainJSON(work)
     });
   } catch (error) {
     console.error('获取作品详情失败:', error);

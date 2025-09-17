@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import fs from 'fs';
 import path from 'path';
 import { deleteFromOSS } from '@/lib/oss';
+import { toPlainJSON } from '@/lib/serialize';
 
 // GET /api/user/works/[id] - 获取单个作品详情
 export async function GET(
@@ -49,7 +50,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      data: work,
+      data: toPlainJSON(work),
       message: '获取作品详情成功'
     });
 

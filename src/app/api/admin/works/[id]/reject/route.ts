@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 import { Role, WorkStatus } from '@prisma/client';
+import { toPlainJSON } from '@/lib/serialize';
 import { z } from 'zod';
 
 // 拒绝理由验证模式
@@ -70,8 +71,8 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      data: updatedWork,
-      message: '作品已拒绝'
+      data: toPlainJSON(updatedWork),
+      message: '作品审核拒绝'
     });
   } catch (error) {
     console.error('拒绝作品失败:', error);

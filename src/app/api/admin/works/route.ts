@@ -82,7 +82,6 @@ export async function GET(request: NextRequest) {
       prisma.work.count({ where })
     ]);
 
-    // 关键修复：在返回前将 BigInt 等不可序列化类型转换为 JSON 安全值
     const safeData = toPlainJSON({
       works,
       pagination: {

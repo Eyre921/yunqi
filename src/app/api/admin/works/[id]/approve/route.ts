@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 import { Role, WorkStatus } from '@prisma/client';
+import { toPlainJSON } from '@/lib/serialize';
 
 // 审核通过
 export async function POST(
@@ -61,7 +62,7 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      data: updatedWork,
+      data: toPlainJSON(updatedWork),
       message: '作品审核通过'
     });
   } catch (error) {

@@ -7,7 +7,9 @@ export type JSONValue =
   | { [key: string]: JSONValue };
 
 export function toPlainJSON<T>(value: T): JSONValue {
-  if (value === null) return null;
+  if (value === null || value === undefined) {
+    return null;
+  }
 
   const t = typeof value;
 
@@ -30,13 +32,20 @@ export function toPlainJSON<T>(value: T): JSONValue {
 
   if (t === 'object') {
     const obj = value as Record<string, unknown>;
-    const out: { [key: string]: JSONValue } = {};
+    const result: { [key: string]: JSONValue } = {};
+    
     for (const [k, v] of Object.entries(obj)) {
       // 跳过 undefined（JSON 不支持）
       if (typeof v === 'undefined') continue;
-      out[k] = toPlainJSON(v);
+      result[k] = toPlainJSON(v);
     }
-    return out;
+    
+    // 优化图片URL：如果有ossUrl，优先使用ossUrl作为imageUrl
+    if (result.ossUrl && result.imageUrl) {
+      result.imageUrl = result.ossUrl;
+    }
+    
+    return result;
   }
 
   // 其他不可序列化类型（如函数、symbol），转字符串兜底

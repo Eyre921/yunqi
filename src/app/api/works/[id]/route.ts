@@ -5,6 +5,7 @@ import { deleteFromOSS } from '@/lib/oss';
 import { prisma } from '@/lib/prisma';
 import { Role, WorkStatus } from '@prisma/client';
 import { z } from 'zod';
+import { toPlainJSON } from '@/lib/serialize';
 
 interface RouteParams {
   params: Promise<{
@@ -69,7 +70,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      data: work
+      data: toPlainJSON(work)
     });
   } catch (error) {
     console.error('获取作品失败:', error);

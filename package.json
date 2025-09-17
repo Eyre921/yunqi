@@ -13,7 +13,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "test:oss": "node run-oss-test.js",
     "test:oss-full": "tsx test-oss.ts",
-    "test:oss-buckets": "node -e \"require('dotenv').config(); const OSS = require('ali-oss'); const client = new OSS({region: process.env.ALI_OSS_REGION, accessKeyId: process.env.ALI_OSS_ACCESS_KEY_ID, accessKeySecret: process.env.ALI_OSS_ACCESS_KEY_SECRET, authorizationV4: true}); client.listBuckets().then(r => console.log('存储空间:', r.buckets?.map(b => b.name))).catch(console.error);\""
+    "test:oss-buckets": "node -e \"require('dotenv').config(); const OSS = require('ali-oss'); const client = new OSS({region: process.env.ALI_OSS_REGION, accessKeyId: process.env.ALI_OSS_ACCESS_KEY_ID, accessKeySecret: process.env.ALI_OSS_ACCESS_KEY_SECRET, authorizationV4: true}); client.listBuckets().then(r => console.log('存储空间:', r.buckets?.map(b => b.name))).catch(console.error);\"",
+    "migrate:oss": "tsx scripts/migrate-to-oss.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

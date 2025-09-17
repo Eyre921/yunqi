@@ -46,7 +46,13 @@ export async function GET(request: NextRequest) {
     };
 
     // 构建排序条件
-    let orderBy: any;
+    // 修改前：let orderBy: any;
+    // 修改后：
+    let orderBy: 
+      | { likeCount: 'asc' | 'desc' }
+      | { viewCount: 'asc' | 'desc' }
+      | { approvedAt: 'asc' | 'desc' }
+      | { createdAt: 'asc' | 'desc' };
     switch (query.sortBy) {
       case 'likeCount':
         orderBy = { likeCount: query.sortOrder };

@@ -10,7 +10,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     if (!session?.user?.id) {
       return NextResponse.json({
         success: false,
-        error: '请先登录'
+        error: '请先登录',
+        code: 'UNAUTHORIZED'  // 添加缺失的code字段
       }, { status: 401 });
     }
 

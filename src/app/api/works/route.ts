@@ -19,7 +19,12 @@ export async function GET(request: NextRequest) {
     const where = status ? { status } : { status: WorkStatus.APPROVED };
 
     // 根据 sortBy 参数确定排序规则
-    let orderBy: any;
+    // 修改前：let orderBy: any;
+    // 修改后：
+    let orderBy: 
+      | { approvedAt: 'desc' }
+      | { likeCount: 'desc' }
+      | Array<{ featured: 'desc' } | { likeCount: 'desc' } | { createdAt: 'desc' }>;
     switch (sortBy) {
       case 'latest':
         // 最新作品：按审核通过时间降序

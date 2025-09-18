@@ -71,7 +71,7 @@ export default function InfiniteScrollWorks({
         throw new Error(result.error || '加载失败');
       }
       
-      const newWorks = result.data || [];
+      const newWorks = result.data.works || [];
       console.log(`第${pageNum}页加载完成，获得${newWorks.length}个作品`);
       
       if (pageNum === 1) {
@@ -81,9 +81,9 @@ export default function InfiniteScrollWorks({
       }
       
       // 更新hasMore状态
-      if (result.pagination) {
-        const hasMoreData = pageNum < result.pagination.pages && newWorks.length > 0;
-        console.log(`分页信息: ${pageNum}/${result.pagination.pages}页，hasMore=${hasMoreData}`);
+      if (result.data.pagination) {
+        const hasMoreData = pageNum < result.data.pagination.pages && newWorks.length > 0;
+        console.log(`分页信息: ${pageNum}/${result.data.pagination.pages}页，hasMore=${hasMoreData}`);
         setHasMore(hasMoreData);
       } else {
         const hasMoreData = newWorks.length === pageSize;

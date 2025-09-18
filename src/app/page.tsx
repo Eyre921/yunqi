@@ -14,6 +14,16 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { useApi } from '@/hooks/useApi';
 import type { WorkWithUser, UploadConfig } from '@/types/work';
 
+interface WorksApiResponse {
+  works: WorkWithUser[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
 export default function HomePage() {
   const { data: session, status } = useSession();
   const [latestWorks, setLatestWorks] = useState<WorkWithUser[]>([]);
@@ -26,7 +36,7 @@ export default function HomePage() {
   const [showNewContentNotification, setShowNewContentNotification] = useState(false);
   const [hotWorksNewCount, setHotWorksNewCount] = useState(0);
   const [showHotWorksNotification, setShowHotWorksNotification] = useState(false);
-  const { data, loading, error, execute } = useApi<WorkWithUser[]>();
+  const { data, loading, error, execute } = useApi<WorksApiResponse>();
 
   useEffect(() => {
     fetchLatestWorks();
@@ -50,19 +60,28 @@ export default function HomePage() {
 
   useEffect(() => {
     if (data) {
-      setLatestWorks(data);
+      // 正确提取works数组
+      setLatestWorks(data.works || []);
+      console.log('获取到的作品数据:', data.works); // 添加调试日志
     }
   }, [data]);
 
   const fetchLatestWorks = async (isSeamlessRefresh = false) => {
+    console.log('开始获取作品数据, 无缝刷新:', isSeamlessRefresh); // 添加调试日志
+    
     if (isSeamlessRefresh) {
       // 无缝刷新：获取最新数据并与现有数据合并
       try {
         const response = await fetch('/api/works?limit=20&status=APPROVED&sortBy=latest');
         const result = await response.json();
         
+        console.log('无缝刷新API响应:', result); // 添加调试日志
+        
         if (result.success && result.data) {
-          const newWorks = result.data;
+          // 修复：正确提取works数组
+          const newWorks = result.data.works || [];
+          console.log('提取的新作品:', newWorks); // 添加调试日志
+          
           setLatestWorks(prev => {
              // 创建一个Map来快速查找现有作品
              const existingWorksMap = new Map(prev.map((work: WorkWithUser) => [work.id, work]));
@@ -97,6 +116,7 @@ export default function HomePage() {
       }
     } else {
       // 普通刷新：直接替换数据
+      console.log('执行普通刷新'); // 添加调试日志
       await execute('/api/works?limit=20&status=APPROVED&sortBy=latest');
     }
   };

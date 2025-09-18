@@ -192,13 +192,17 @@ export async function getObjectInfo(fileName: string): Promise<OSSHeadResult> {
  * @param expires 过期时间（秒）
  * @returns 签名URL
  */
+// 在现有代码基础上，确保getSignedUrl函数正常工作
 export async function getSignedUrl(fileName: string, expires: number = 3600): Promise<string> {
   try {
-    const url = ossClient.signatureUrl(fileName, { expires });
+    const url = ossClient.signatureUrl(fileName, {
+      expires,
+      method: 'GET'
+    });
     return url;
   } catch (error) {
-    console.error('获取OSS签名URL失败:', error);
-    throw new Error(`获取OSS签名URL失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    console.error('生成签名URL失败:', error);
+    throw error;
   }
 }
 

@@ -104,8 +104,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const uploadResult = await uploadToOSS(file, file.name, {
       headers: {
         'x-oss-storage-class': 'Standard',
-        'x-oss-object-acl': 'public-read',
+        'x-oss-object-acl': 'public-read', // 确保文件可公开读取
         'Content-Type': file.type,
+        'Cache-Control': 'public, max-age=31536000', // 添加缓存控制
         'x-oss-tagging': `userId=${session.user.id}&uploadTime=${Date.now()}`
       },
       folder: 'works'

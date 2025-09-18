@@ -65,9 +65,9 @@ export async function PATCH(
       updateData.likeCount = initialLikes;
     }
 
-    // 如果是拒绝，添加拒绝理由
+    // 如果是拒绝，添加拒绝理由（如果提供的话）
     if (validatedData.status === 'REJECTED') {
-      updateData.rejectReason = validatedData.rejectReason;
+      updateData.rejectReason = validatedData.rejectReason || null;
     }
 
     // 更新作品

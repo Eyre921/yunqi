@@ -9,7 +9,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import Image from 'next/image';
 import type { WorkWithUser, WorksResponse, SortBy, SortOrder } from '@/types/work';
 import { getImageUrl } from '@/lib/image-url';
-
+import { toast } from 'react-hot-toast';
 export function WorksManagement() {
   const [works, setWorks] = useState<WorkWithUser[]>([]);
   const [pagination, setPagination] = useState<WorksResponse['pagination'] | null>(null);
@@ -58,7 +58,7 @@ export function WorksManagement() {
   }, [statusFilter, debouncedSearchTerm, sortBy, sortOrder]);
 
   // 处理状态变更
-  const handleStatusChange = async (workId: string, newStatus: WorkStatus, rejectReason?: string) => {
+  const handleStatusChange = async (workId: string, newStatus: WorkStatus, rejectReason?: string): Promise<void> => {
     try {
       const response = await fetch(`/api/admin/works/${workId}`, {
         method: 'PATCH',
@@ -72,14 +72,19 @@ export function WorksManagement() {
       });
 
       if (!response.ok) {
-        throw new Error('更新失败');
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || '更新失败');
       }
+
+      // 成功提示（顶部非打断）
+      const actionText = newStatus === 'APPROVED' ? '已通过' : newStatus === 'REJECTED' ? '已拒绝' : '已更新';
+      toast.success(`作品${actionText}`);
 
       // 重新加载数据
       await loadWorks();
     } catch (err) {
       console.error('更新作品状态失败:', err);
-      alert('更新失败，请重试');
+      toast.error(err instanceof Error ? err.message : '更新失败，请重试');
     }
   };
 
@@ -100,14 +105,15 @@ export function WorksManagement() {
       }
 
       // 更新本地状态
-      setWorks(prev => prev.map(work => 
+      setWorks(prev => prev.map(work =>
         work.id === workId ? { ...work, featured } : work
       ));
-      
-      alert(featured ? '作品已设为精选' : '作品已取消精选');
+
+      // 成功提示（顶部非打断）
+      toast.success(featured ? '作品已设为精选' : '作品已取消精选');
     } catch (err) {
       console.error('设置精选状态失败:', err);
-      alert(err instanceof Error ? err.message : '设置精选状态失败，请重试');
+      toast.error(err instanceof Error ? err.message : '设置精选状态失败，请重试');
     }
   };
 
@@ -343,12 +349,7 @@ export function WorksManagement() {
                                 通过
                               </button>
                               <button
-                                onClick={() => {
-                                  const reason = prompt('请输入拒绝理由:');
-                                  if (reason) {
-                                    handleStatusChange(work.id, 'REJECTED', reason);
-                                  }
-                                }}
+                                onClick={() => handleStatusChange(work.id, 'REJECTED', '管理员拒绝')}
                                 className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                               >
                                 拒绝

@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: work,
+      data: toPlainJSON(work),
       message: '作品提交成功，等待管理员审核'
     }, { status: 201 });
 

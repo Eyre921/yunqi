@@ -9,6 +9,7 @@ import ReactCrop, {
   convertToPixelCrop,
 } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import { toast } from 'react-hot-toast';
 
 interface ImageCropperProps {
   src: string;
@@ -98,7 +99,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({ src, onCropComplete, onSkip
                 if (blob) {
                   onSkipCrop(blob);
                 } else {
-                  alert('处理图片失败，请重试');
+                  toast.error('处理图片失败，请重试');
                 }
               },
               'image/jpeg',
@@ -113,7 +114,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({ src, onCropComplete, onSkip
       onSkipCrop(originalBlob);
     } catch (error) {
       console.error('处理原图时出错:', error);
-      alert('处理图片失败，请重试');
+      toast.error('处理图片失败，请重试');
     } finally {
       setIsProcessing(false);
     }
@@ -177,7 +178,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({ src, onCropComplete, onSkip
 
   const handleCropComplete = async () => {
     if (!completedCrop) {
-      alert('请先选择裁剪区域');
+      toast.error('请先选择裁剪区域');
       return;
     }
 
@@ -187,11 +188,11 @@ const ImageCropper: React.FC<ImageCropperProps> = ({ src, onCropComplete, onSkip
       if (croppedImageBlob) {
         onCropComplete(croppedImageBlob);
       } else {
-        alert('裁剪失败，请重试');
+        toast.error('裁剪失败，请重试');
       }
     } catch (error) {
       console.error('裁剪图片时出错:', error);
-      alert('裁剪失败，请重试');
+      toast.error('裁剪失败，请重试');
     } finally {
       setIsProcessing(false);
     }

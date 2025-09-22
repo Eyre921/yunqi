@@ -76,7 +76,7 @@ export function WorksManagement() {
         throw new Error(errorData?.error || '更新失败');
       }
 
-      // 成功提示（顶部非打断）
+      // 顶部悬浮成功提示
       const actionText = newStatus === 'APPROVED' ? '已通过' : newStatus === 'REJECTED' ? '已拒绝' : '已更新';
       toast.success(`作品${actionText}`);
 
@@ -105,11 +105,11 @@ export function WorksManagement() {
       }
 
       // 更新本地状态
-      setWorks(prev => prev.map(work =>
+      setWorks(prev => prev.map(work => 
         work.id === workId ? { ...work, featured } : work
       ));
-
-      // 成功提示（顶部非打断）
+      
+      // 顶部悬浮成功提示
       toast.success(featured ? '作品已设为精选' : '作品已取消精选');
     } catch (err) {
       console.error('设置精选状态失败:', err);
@@ -337,29 +337,31 @@ export function WorksManagement() {
                           {work.approvedAt ? formatDateTime(work.approvedAt) : '-'}
                         </td>
                       )}
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex flex-col space-y-2">
+                      {/* 操作列改为横向按钮样式 */}
+                      <td className="px-6 py-4 text-sm font-medium">
+                        <div className="flex flex-row flex-wrap items-center gap-2">
                           {/* 审核操作 */}
                           {work.status === 'PENDING' && (
-                            <div className="flex space-x-2">
+                            <>
                               <button
                                 onClick={() => handleStatusChange(work.id, 'APPROVED')}
-                                className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+                                className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium border border-green-600 text-green-700 hover:bg-green-50 transition-colors dark:text-green-300 dark:border-green-400 dark:hover:bg-green-900/30"
                               >
                                 通过
                               </button>
                               <button
                                 onClick={() => handleStatusChange(work.id, 'REJECTED', '管理员拒绝')}
-                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                                className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium border border-red-600 text-red-700 hover:bg-red-50 transition-colors dark:text-red-300 dark:border-red-400 dark:hover:bg-red-900/30"
                               >
                                 拒绝
                               </button>
-                            </div>
+                            </>
                           )}
+                          
                           {work.status !== 'PENDING' && (
                             <button
                               onClick={() => handleStatusChange(work.id, 'PENDING')}
-                              className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                              className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium border border-blue-600 text-blue-700 hover:bg-blue-50 transition-colors dark:text-blue-300 dark:border-blue-400 dark:hover:bg-blue-900/30"
                             >
                               重新审核
                             </button>
@@ -369,10 +371,10 @@ export function WorksManagement() {
                           {work.status === 'APPROVED' && (
                             <button
                               onClick={() => handleFeaturedChange(work.id, !work.featured)}
-                              className={`text-sm ${
-                                work.featured 
-                                  ? 'text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300'
-                                  : 'text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300'
+                              className={`inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                                work.featured
+                                  ? 'border-yellow-600 text-yellow-700 hover:bg-yellow-50 dark:text-yellow-300 dark:border-yellow-400 dark:hover:bg-yellow-900/30'
+                                  : 'border-purple-600 text-purple-700 hover:bg-purple-50 dark:text-purple-300 dark:border-purple-400 dark:hover:bg-purple-900/30'
                               }`}
                             >
                               {work.featured ? '取消精选' : '设为精选'}

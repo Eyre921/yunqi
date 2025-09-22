@@ -210,7 +210,7 @@ export async function PUT(
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({
         success: true,
-        data: existingWork,
+        data: toPlainJSON(existingWork),
         message: '没有检测到更改'
       }, { status: 200 });
     }
@@ -238,7 +238,7 @@ export async function PUT(
 
     return NextResponse.json({
       success: true,
-      data: updatedWork,
+      data: toPlainJSON(updatedWork),
       message
     }, { status: 200 });
     

@@ -6,6 +6,7 @@ import Image from 'next/image';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorMessage from '@/components/ErrorMessage';
 import ImageCropper from '@/components/ImageCropper';
+import { toast } from 'react-hot-toast';
 
 // 上传配置类型
 type UploadConfig = {
@@ -76,7 +77,7 @@ function UploadForm() {
       }
     } catch (error) {
       console.error('加载作品数据失败:', error);
-      alert(error instanceof Error ? error.message : '加载作品数据失败，请重试');
+      toast.error(error instanceof Error ? error.message : '加载作品数据失败，请重试');
       router.push('/profile'); // 加载失败时返回个人中心
     } finally {
       setIsLoadingWork(false);
@@ -329,12 +330,12 @@ function UploadForm() {
         throw new Error(errorMessage);
       }
   
-      // 成功提示
-      alert(isEditMode ? '作品已更新，正在重新审核中！' : '作品已提交审核，请耐心等待！');
+      // 成功提示（顶部悬浮）
+      toast.success(isEditMode ? '作品已更新，正在重新审核中！' : '作品已提交审核，请耐心等待！');
       router.push(isEditMode ? '/profile' : '/');
     } catch (error) {
       console.error(isEditMode ? '更新失败:' : '提交失败:', error);
-      alert(error instanceof Error ? error.message : (isEditMode ? '更新失败，请重试' : '提交失败，请重试'));
+      toast.error(error instanceof Error ? error.message : (isEditMode ? '更新失败，请重试' : '提交失败，请重试'));
     } finally {
       setIsSubmitting(false);
     }
@@ -405,7 +406,7 @@ function UploadForm() {
               <ul className="space-y-1">
                 <li>• 文件大小不超过 {uploadConfig ? Math.floor(uploadConfig.maxFileSize / (1024 * 1024)) : 10}MB</li>
                 <li>• 支持格式：{uploadConfig?.allowedFormats.join(', ')}</li>
-                <li>• 作品提交后即可公开展示</li>
+                <li>• 作品提交并通过审核后即可公开展示</li>
               </ul>
             </div>
           </div>
@@ -494,7 +495,7 @@ function UploadForm() {
                       支持 {uploadConfig?.allowedFormats.join(', ')} 格式，最大 {uploadConfig ? Math.floor(uploadConfig.maxFileSize / (1024 * 1024)) : 10}MB
                     </p>
                     <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                      📐 图片将自动裁剪为 16:9 比例以确保最佳展示效果
+                      📐 推荐将图片裁剪为 16:9 比例以确保最佳展示效果
                     </p>
                   </div>
                 )}
@@ -574,7 +575,7 @@ function UploadForm() {
                 maxLength={8000}
                 rows={4}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white resize-none"
-                placeholder="如果是AI生成作品，可以分享您使用的Prompt（可选，最多8000字符）"
+                placeholder="分享您使用AI生成作品的Prompt（最多8000字符）"
               />
               <div className="flex justify-between mt-1">
                 {errors.prompt && (

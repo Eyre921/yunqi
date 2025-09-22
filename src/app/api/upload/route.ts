@@ -6,14 +6,9 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    // 验证用户登录
+    // 验证用户登录（允许游客，无需强制校验）
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: '请先登录' },
-        { status: 401 }
-      );
-    }
+    const userId = session?.user?.id ?? null;
 
     // 获取上传配置
     const uploadConfig = await prisma.uploadConfig.findFirst({
@@ -87,29 +82,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 检查用户上传数量限制
-    const userUploadCount = await prisma.work.count({
-      where: { userId: session.user.id }
-    });
-
-    if (userUploadCount >= uploadConfig.maxUploadsPerUser) {
-      return NextResponse.json({
-        success: false,
-        error: `每个用户最多只能上传${uploadConfig.maxUploadsPerUser}个作品`,
-        code: 'UPLOAD_LIMIT_EXCEEDED'
-      }, { status: 403 });
+    // 检查上传数量限制（仅对已登录用户生效；游客不做此限制，建议后续按IP/验证码限流）
+    if (userId) {
+      const userUploadCount = await prisma.work.count({
+        where: { userId }
+      });
+      if (userUploadCount >= uploadConfig.maxUploadsPerUser) {
+        return NextResponse.json({
+          success: false,
+          error: `每个用户最多只能上传${uploadConfig.maxUploadsPerUser}个作品`,
+          code: 'UPLOAD_LIMIT_EXCEEDED'
+        }, { status: 403 });
+      }
     }
 
-    // 上传到OSS（使用增强功能）
+    // 上传到OSS（开启唯一命名，避免同名覆盖）
     const uploadResult = await uploadToOSS(file, file.name, {
       headers: {
         'x-oss-storage-class': 'Standard',
         'x-oss-object-acl': 'public-read', // 确保文件可公开读取
         'Content-Type': file.type,
-        'Cache-Control': 'public, max-age=31536000', // 添加缓存控制
-        'x-oss-tagging': `userId=${session.user.id}&uploadTime=${Date.now()}`
+        'Cache-Control': 'public, max-age=31536000',
+        'x-oss-tagging': `userId=${userId ?? 'guest'}&uploadTime=${Date.now()}`
       },
-      folder: 'works'
+      folder: 'works',
+      generateUniqueName: true
     });
 
     // 保存到数据库
@@ -118,7 +115,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         name: title || '未命名作品',
         title: title || '未命名作品',
         description: description || '',
-        author: session.user.name || session.user.email || '匿名用户',
+        author: session?.user?.name || session?.user?.email || '匿名用户',
         imageUrl: uploadResult.url,
         imagePath: uploadResult.name,
         ossKey: uploadResult.name,
@@ -126,7 +123,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         fileSize: BigInt(uploadResult.size || file.size),
         mimeType: file.type,
         tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
-        userId: session.user.id
+        userId // 登录用户写入其ID；游客为 null
       }
     });
 

@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@prisma/client';
 import { z } from 'zod';
+import { toPlainJSON } from '@/lib/serialize';
 
 interface RouteParams {
   params: Promise<{
@@ -19,8 +20,8 @@ const FeaturedSchema = z.object({
 // PATCH /api/admin/works/[id]/featured - 设置作品精选状态
 export async function PATCH(
   request: NextRequest,
-  { params }: RouteParams
-) {
+  { params }: { params: Promise<{ id: string }> }
+): Promise<NextResponse> {
   try {
     const session = await getServerSession(authOptions);
     const { id } = await params;
@@ -61,23 +62,12 @@ export async function PATCH(
     // 更新作品精选状态
     const updatedWork = await prisma.work.update({
       where: { id },
-      data: {
-        featured
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        }
-      }
+      data: { featured },
     });
 
     return NextResponse.json({
       success: true,
-      data: updatedWork,
+      data: toPlainJSON(updatedWork),
       message: featured ? '作品已设为精选' : '作品已取消精选'
     });
   } catch (error) {

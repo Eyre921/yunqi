@@ -9,7 +9,7 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorMessage from '@/components/ErrorMessage';
 import ThemeToggle from '@/components/ThemeToggle';
 import Image from 'next/image';
-
+import { toast } from 'react-hot-toast';
 import type { UserWork, WorksData } from '@/types/work';
 
 import { getImageUrl } from '@/lib/image-url';
@@ -151,13 +151,13 @@ export default function ProfilePage() {
             _count: { works: prev._count.works - 1 }
           } : null);
         }
-        alert('作品删除成功');
+        toast.success('作品删除成功');
       } else {
-        alert(response?.error || '删除失败，请稍后重试');
+        toast.error(response?.error || '删除失败，请稍后重试');
       }
     } catch (error) {
       console.error('删除作品失败:', error);
-      alert('网络错误，请稍后重试');
+      toast.error('网络错误，请稍后重试');
     }
   };
 

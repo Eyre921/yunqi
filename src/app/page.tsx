@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { toast } from 'react-hot-toast';
 import WorkCard from '@/components/WorkCard';
 import WorkMarquee from '@/components/WorkMarquee';
 import InfiniteScrollWorks from '@/components/InfiniteScrollWorks';
@@ -170,7 +171,7 @@ export default function HomePage() {
   const handleUploadClick = () => {
     const status = getUploadButtonStatus();
     if (status.disabled) {
-      alert(status.reason || '当前无法上传作品');
+      toast.error(status.reason || '当前无法上传作品');
       return;
     }
     
@@ -198,7 +199,7 @@ export default function HomePage() {
     }
   };
 
-  const handleLike = async (workId: string) => {
+  const handleLike = async (workId: string): Promise<void> => {
     try {
       const response = await fetch(`/api/works/${workId}/like`, {
         method: 'POST',
@@ -218,9 +219,9 @@ export default function HomePage() {
             : work
         ));
         
-        // 显示点赞成功提示
-        const increment = result.data.increment;
-        let message;
+        // 显示点赞成功提示（顶部 toast）
+        const increment = result.data.increment as number;
+        let message: string;
         if (increment >= 8) {
           message = `哇！获得了 ${increment} 个赞！作品太棒了！🎉`;
         } else if (increment >= 5) {
@@ -228,10 +229,11 @@ export default function HomePage() {
         } else {
           message = `点赞成功！+${increment} 👍`;
         }
-        console.log(message); // 或者使用toast组件显示
+        toast.success(message);
       }
     } catch (err) {
       console.error('点赞失败:', err);
+      toast.error('点赞失败，请稍后重试');
     }
   };
 

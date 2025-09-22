@@ -9,7 +9,7 @@ const UploadConfigSchema = z.object({
   isEnabled: z.boolean(),
   startTime: z.iso.datetime().optional().nullable(),
   endTime: z.iso.datetime().optional().nullable(),
-  maxUploadsPerUser: z.number().int().min(1).max(1000), // 增加到1000
+  maxUploadsPerUser: z.number().int().min(1).max(100000), // 增加到1000
   maxFileSize: z.number().int().min(1024).max(104857600), // 1KB到100MB
   allowedFormats: z.array(z.string()).min(1),
   announcement: z.string().optional().nullable()

@@ -227,7 +227,7 @@ const UploadConfigManagement: React.FC = () => {
               <input
                 type="number"
                 min="1"
-                max="100"
+                max="100000"
                 value={config.maxUploadsPerUser}
                 onChange={(e) => setConfig(prev => ({ 
                   ...prev, 

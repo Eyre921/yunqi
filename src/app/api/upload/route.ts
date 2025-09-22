@@ -53,9 +53,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // 获取表单数据
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const title = formData.get('title') as string;
-    const description = formData.get('description') as string;
-    const tags = formData.get('tags') as string;
 
     if (!file) {
       return NextResponse.json(
@@ -82,19 +79,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 检查上传数量限制（仅对已登录用户生效；游客不做此限制，建议后续按IP/验证码限流）
-    if (userId) {
-      const userUploadCount = await prisma.work.count({
-        where: { userId }
-      });
-      if (userUploadCount >= uploadConfig.maxUploadsPerUser) {
-        return NextResponse.json({
-          success: false,
-          error: `每个用户最多只能上传${uploadConfig.maxUploadsPerUser}个作品`,
-          code: 'UPLOAD_LIMIT_EXCEEDED'
-        }, { status: 403 });
-      }
-    }
+    // 上传数量限制检查移至 /api/works 中进行
 
     // 上传到OSS（开启唯一命名，避免同名覆盖）
     const uploadResult = await uploadToOSS(file, file.name, {
@@ -109,32 +94,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       generateUniqueName: true
     });
 
-    // 保存到数据库
-    const work = await prisma.work.create({
-      data: {
-        name: title || '未命名作品',
-        title: title || '未命名作品',
-        description: description || '',
-        author: session?.user?.name || session?.user?.email || '匿名用户',
-        imageUrl: uploadResult.url,
-        imagePath: uploadResult.name,
-        ossKey: uploadResult.name,
-        ossUrl: uploadResult.url,
-        fileSize: BigInt(uploadResult.size || file.size),
-        mimeType: file.type,
-        tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
-        userId // 登录用户写入其ID；游客为 null
-      }
-    });
-
+    // 只返回上传结果，不创建作品记录
     return NextResponse.json({
       success: true,
       data: {
-        id: work.id,
-        title: work.title,
-        imageUrl: work.imageUrl,
-        ossKey: work.ossKey,
-        message: '上传成功'
+        imageUrl: uploadResult.url,
+        ossKey: uploadResult.name,
+        fileSize: uploadResult.size || file.size,
+        mimeType: file.type
       }
     });
 

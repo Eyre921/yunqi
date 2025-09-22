@@ -10,6 +10,16 @@ import Image from 'next/image';
 import type { WorkWithUser, WorksResponse, SortBy, SortOrder } from '@/types/work';
 import { getImageUrl } from '@/lib/image-url';
 import { toast } from 'react-hot-toast';
+import { z } from 'zod';
+
+// 使用 Zod 定义管理员编辑接口的数据结构，确保类型安全
+const AdminWorkEditDataSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  author: z.string(),
+  prompt: z.string().max(2000).optional().nullable()
+});
+
 export function WorksManagement() {
   const [works, setWorks] = useState<WorkWithUser[]>([]);
   const [pagination, setPagination] = useState<WorksResponse['pagination'] | null>(null);
@@ -20,6 +30,14 @@ export function WorksManagement() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedWork, setSelectedWork] = useState<WorkWithUser | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingWork, setEditingWork] = useState<WorkWithUser | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    author: '',
+    prompt: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   
   const { data, loading, error, execute } = useApi<WorksResponse>();
@@ -127,6 +145,101 @@ export function WorksManagement() {
   const closeModal = () => {
     setShowImageModal(false);
     setSelectedWork(null);
+  };
+
+  // 打开编辑模态框
+  const openEditModal = async (work: WorkWithUser) => {
+    setEditingWork(work);
+    setShowEditModal(true);
+    
+    try {
+      // 获取最新的作品详情，确保提示词信息正确
+      const response = await fetch(`/api/admin/works/${work.id}/edit`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        credentials: 'same-origin',
+        cache: 'no-store'
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (response.ok && result && result.success) {
+        const parsed = AdminWorkEditDataSchema.safeParse(result.data);
+        if (parsed.success) {
+          const data = parsed.data;
+          setEditForm({
+            name: data.name ?? work.name ?? '',
+            author: data.author ?? work.author ?? '',
+            prompt: (data.prompt ?? work.prompt ?? '') || ''
+          });
+          return;
+        }
+      }
+
+      // 如果API调用失败或数据校验失败，使用传入的work数据作为备选
+      setEditForm({
+        name: work.name || '',
+        author: work.author || '',
+        prompt: work.prompt || ''
+      });
+    } catch (error) {
+      console.error('获取作品详情失败:', error);
+      // 如果出现错误，使用传入的work数据作为备选
+      setEditForm({
+        name: work.name || '',
+        author: work.author || '',
+        prompt: work.prompt || ''
+      });
+    }
+  };
+
+  // 关闭编辑模态框
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setEditingWork(null);
+    setEditForm({
+      name: '',
+      author: '',
+      prompt: ''
+    });
+    setIsSubmitting(false);
+  };
+
+  // 处理编辑表单提交
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingWork || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/admin/works/${editingWork.id}/edit`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editForm),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || '更新失败');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        toast.success('作品信息更新成功');
+        closeEditModal();
+        // 重新加载数据
+        await loadWorks();
+      } else {
+        throw new Error(result.error || '更新失败');
+      }
+    } catch (err) {
+      console.error('更新作品信息失败:', err);
+      toast.error(err instanceof Error ? err.message : '更新失败，请重试');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // 状态徽章组件
@@ -380,6 +493,14 @@ export function WorksManagement() {
                               {work.featured ? '取消精选' : '设为精选'}
                             </button>
                           )}
+                          
+                          {/* 编辑按钮 */}
+                          <button
+                            onClick={() => openEditModal(work)}
+                            className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium border border-gray-600 text-gray-700 hover:bg-gray-50 transition-colors dark:text-gray-300 dark:border-gray-400 dark:hover:bg-gray-900/30"
+                          >
+                            编辑
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -564,6 +685,97 @@ export function WorksManagement() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 编辑作品模态框 */}
+      {showEditModal && editingWork && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  编辑作品信息
+                </h2>
+                <button
+                  onClick={closeEditModal}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <form onSubmit={handleEditSubmit} className="space-y-6">
+                {/* 作品名称 */}
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    作品名称
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    placeholder="请输入作品名称"
+                    required
+                  />
+                </div>
+
+                {/* 作者 */}
+                <div>
+                  <label htmlFor="author" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    作者
+                  </label>
+                  <input
+                    type="text"
+                    id="author"
+                    value={editForm.author}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, author: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    placeholder="请输入作者名称"
+                    required
+                  />
+                </div>
+
+                {/* 提示词描述 */}
+                <div>
+                  <label htmlFor="prompt" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    提示词描述（可选）
+                  </label>
+                  <textarea
+                    id="prompt"
+                    value={editForm.prompt}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, prompt: e.target.value }))}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    placeholder="请输入提示词描述（可选）"
+                  />
+                </div>
+
+                {/* 操作按钮 */}
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={closeEditModal}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? '保存中...' : '保存'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

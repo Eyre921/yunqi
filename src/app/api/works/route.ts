@@ -144,7 +144,19 @@ export async function POST(request: NextRequest) {
       }, { status: 403 });
     }
 
-    // 移除用户上传数量限制检查（因为无需登录）
+    // 检查用户上传数量限制（仅对已登录用户生效）
+    if (session?.user?.id) {
+      const userUploadCount = await prisma.work.count({
+        where: { userId: session.user.id }
+      });
+      if (userUploadCount >= uploadConfig.maxUploadsPerUser) {
+        return NextResponse.json({
+          success: false,
+          error: `每个用户最多只能上传${uploadConfig.maxUploadsPerUser}个作品`,
+          code: 'UPLOAD_LIMIT_EXCEEDED'
+        }, { status: 403 });
+      }
+    }
 
     const body = await request.json();
     const { name, author, prompt, imageUrl } = body;

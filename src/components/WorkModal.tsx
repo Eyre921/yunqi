@@ -5,82 +5,66 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import ImageViewer from './ImageViewer';
 import { getImageUrl } from '@/lib/image-url';
+import { toast } from 'react-hot-toast';
 import type { WorkModalProps } from '@/types/work';
 
 export default function WorkModal({ work, isOpen, onClose, onLike, onWorkUpdate }: WorkModalProps) {
-  const [likeCount, setLikeCount] = useState(0);
-  const [viewCount, setViewCount] = useState(0);
-  // 移除 isLiking 状态，不显示加载圈
-  const [copySuccess, setCopySuccess] = useState(false);
+  const [likeCount, setLikeCount] = useState(work?.likeCount || 0);
+  const [viewCount, setViewCount] = useState(work?.viewCount || 0);
   const [imageError, setImageError] = useState(false);
+  const [isLiking, setIsLiking] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
   const [showImageViewer, setShowImageViewer] = useState(false);
-  
-  // 获取处理后的图片URL
+
   const imageUrl = work ? getImageUrl(work.imageUrl) : '';
   
   const handleLike = async () => {
-    if (!work) return;
+    if (isLiking || !work) return;
     
+    setIsLiking(true);
     try {
       const response = await fetch(`/api/works/${work.id}/like`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
+
       if (response.ok) {
         const data = await response.json();
-        if (data.success) {
-          // 使用后端返回的实际点赞数
-          setLikeCount(data.data.likeCount);
-          onLike?.(); // 通知父组件更新
-          
-          // 通知父组件更新作品数据
-          if (onWorkUpdate && work) {
-            const updatedWork = {
-              ...work,
-              likeCount: data.data.likeCount
-            };
-            onWorkUpdate(updatedWork);
-          }
-          
-          // 根据增加的点赞数显示不同的提示信息（参考示例逻辑）
-          const increment = data.data.increment;
-          let message;
-          if (increment >= 8) {
-            message = `哇！获得了 ${increment} 个赞！作品太棒了！🎉`;
-          } else if (increment >= 5) {
-            message = `太好了！获得了 ${increment} 个赞！❤️`;
-          } else {
-            message = `点赞成功！+${increment} 👍`;
-          }
-          
-          // 显示toast提示
-          showToast(message);
+        setLikeCount(data.data.likeCount);
+        
+        // 通知父组件更新作品数据
+        if (onWorkUpdate) {
+          onWorkUpdate({
+            ...work,
+            likeCount: data.data.likeCount
+          });
         }
+
+        // 显示点赞成功提示
+        const increment = data.data.increment || 1;
+        let message: string;
+        if (increment >= 3) {
+          message = `哇！获得了 ${increment} 个赞！作品太棒了！🎉`;
+        } else if (increment >= 2) {
+          message = `太好了！获得了 ${increment} 个赞！❤️`;
+        } else {
+          message = `点赞成功！+${increment} 👍`;
+        }
+        toast.success(message);
+      } else {
+        toast.error('点赞失败，请稍后重试');
       }
     } catch (error) {
       console.error('点赞失败:', error);
-      showToast('点赞失败，请稍后重试');
+      toast.error('点赞失败，请稍后重试');
+    } finally {
+      setTimeout(() => {
+        setIsLiking(false);
+      }, 1000);
     }
   };
-  
-  // 添加toast提示函数
-  const showToast = (message: string) => {
-    // 创建toast元素
-    const toast = document.createElement('div');
-    toast.className = 'fixed top-4 right-4 bg-black bg-opacity-80 text-white px-4 py-2 rounded-lg z-50 transition-opacity duration-300';
-    toast.textContent = message;
-    
-    // 添加到页面
-    document.body.appendChild(toast);
-    
-    // 3秒后移除
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      setTimeout(() => {
-        document.body.removeChild(toast);
-      }, 300);
-    }, 3000);
-  };
-
   
   useEffect(() => {
     if (work) {
@@ -140,11 +124,43 @@ export default function WorkModal({ work, isOpen, onClose, onLike, onWorkUpdate 
     if (!work.prompt) return;
     
     try {
-      await navigator.clipboard.writeText(work.prompt);
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
+      // 检查是否支持 Clipboard API
+      if (navigator.clipboard && window.isSecureContext) {
+        // 使用现代 Clipboard API
+        await navigator.clipboard.writeText(work.prompt);
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000);
+        toast.success('提示词已复制到剪贴板！');
+      } else {
+        // 降级到传统方法
+        const textArea = document.createElement('textarea');
+        textArea.value = work.prompt;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+          const successful = document.execCommand('copy');
+          if (successful) {
+            setCopySuccess(true);
+            setTimeout(() => setCopySuccess(false), 2000);
+            toast.success('提示词已复制到剪贴板！');
+          } else {
+            throw new Error('复制命令执行失败');
+          }
+        } catch (err) {
+          console.error('传统复制方法失败:', err);
+          toast.error('复制失败，请手动选择文本进行复制');
+        } finally {
+          document.body.removeChild(textArea);
+        }
+      }
     } catch (error) {
       console.error('复制失败:', error);
+      toast.error('复制失败，请手动选择文本进行复制');
     }
   };
   

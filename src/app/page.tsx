@@ -199,8 +199,17 @@ export default function HomePage() {
     }
   };
 
+  const [likingWorks, setLikingWorks] = useState<Set<string>>(new Set());
+
   const handleLike = async (workId: string): Promise<void> => {
+    // 防止重复点赞
+    if (likingWorks.has(workId)) {
+      return;
+    }
+
     try {
+      setLikingWorks(prev => new Set(prev).add(workId));
+      
       const response = await fetch(`/api/works/${workId}/like`, {
         method: 'POST',
       });
@@ -234,6 +243,15 @@ export default function HomePage() {
     } catch (err) {
       console.error('点赞失败:', err);
       toast.error('点赞失败，请稍后重试');
+    } finally {
+      // 1秒后移除防抖状态
+      setTimeout(() => {
+        setLikingWorks(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(workId);
+          return newSet;
+        });
+      }, 1000);
     }
   };
 
@@ -348,7 +366,6 @@ export default function HomePage() {
           work={selectedWork}
           isOpen={!!selectedWork}
           onClose={handleCloseModal}
-          onLike={() => selectedWork && handleLike(selectedWork.id)}
           onWorkUpdate={handleWorkUpdate}
         />
         

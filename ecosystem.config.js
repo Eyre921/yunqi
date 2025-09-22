@@ -5,35 +5,53 @@ module.exports = {
       script: 'npm',
       args: 'start',
       cwd: './',
-      instances: 1,
+      instances: 4, // 16GB内存服务器使用4个实例，每个实例3GB，总计12GB，保留4GB给系统
+      exec_mode: 'cluster', // 启用集群模式
       autorestart: true,
       watch: false,
-      max_memory_restart: '1G',
+      max_memory_restart: '3G', // 16GB内存，每个实例最大3GB
+      max_restarts: 10,
+      min_uptime: '10s',
+      
+      // 性能优化配置
+      node_args: '--max-old-space-size=3072', // 每个Node.js进程最大3GB内存
+      
       env: {
         NODE_ENV: 'production',
-        PORT: 3000
+        PORT: 3000,
+        // 优化Node.js性能
+        UV_THREADPOOL_SIZE: 16, // 增加线程池大小（默认4）
+        NODE_OPTIONS: '--max-old-space-size=3072'
       },
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3000
+        PORT: 3000,
+        UV_THREADPOOL_SIZE: 16,
+        NODE_OPTIONS: '--max-old-space-size=3072'
       },
       env_development: {
         NODE_ENV: 'development',
         PORT: 3000
       },
+      
       // 日志配置
       log_file: './logs/combined.log',
       out_file: './logs/out.log',
       error_file: './logs/error.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      merge_logs: true,
+      log_type: 'json',
       
-      // 进程管理配置
-      min_uptime: '10s',
-      max_restarts: 10,
+      // 性能监控
+      pmx: true,
+      monitoring: true,
       
-      // 集群模式配置（可选）
-      // instances: 'max', // 使用所有CPU核心
-      // exec_mode: 'cluster'
+      // 负载均衡配置
+      listen_timeout: 8000,
+      kill_timeout: 5000,
+      
+      // 健康检查
+      health_check_grace_period: 3000,
     },
     {
       name: 'yunqi-platform-dev',

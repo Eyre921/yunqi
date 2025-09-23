@@ -1,7 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from './auth';
 import { redirect } from 'next/navigation';
-import { NextRequest, NextResponse } from 'next/server';
 
 export async function getCurrentUser() {
   const session = await getServerSession(authOptions);

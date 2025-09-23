@@ -1,0 +1,146 @@
+{
+  "scenarios": {
+    "light_load": {
+      "name": "轻负载测试",
+      "description": "模拟少量用户访问，用于基础功能验证",
+      "url": "http://47.238.240.231:3000/",
+      "concurrent": 5,
+      "duration": 30,
+      "method": "GET",
+      "testMode": "duration"
+    },
+    "normal_load": {
+      "name": "正常负载测试",
+      "description": "模拟正常业务负载",
+      "url": "http://47.238.240.231:3000/",
+      "concurrent": 20,
+      "duration": 120,
+      "method": "GET",
+      "testMode": "duration"
+    },
+    "high_load": {
+      "name": "高负载测试",
+      "description": "模拟高峰期访问量",
+      "url": "http://47.238.240.231:3000/",
+      "concurrent": 50,
+      "duration": 300,
+      "method": "GET",
+      "testMode": "duration"
+    },
+    "stress_test": {
+      "name": "压力测试",
+      "description": "测试系统极限承载能力",
+      "url": "http://47.238.240.231:3000/",
+      "concurrent": 100,
+      "duration": 600,
+      "method": "GET",
+      "testMode": "duration"
+    },
+    "spike_test": {
+      "name": "峰值测试",
+      "description": "短时间高并发冲击测试",
+      "url": "http://47.238.240.231:3000/",
+      "concurrent": 200,
+      "duration": 60,
+      "method": "GET",
+      "testMode": "duration"
+    },
+    "endurance_test": {
+      "name": "持久性测试",
+      "description": "长时间稳定性测试",
+      "url": "http://47.238.240.231:3000/",
+      "concurrent": 30,
+      "duration": 1800,
+      "method": "GET",
+      "testMode": "duration"
+    },
+    "api_test": {
+      "name": "API接口测试",
+      "description": "测试API接口性能",
+      "url": "http://47.238.240.231:3000/api/works",
+      "concurrent": 25,
+      "duration": 180,
+      "method": "GET",
+      "testMode": "duration"
+    },
+    "fixed_requests": {
+      "name": "固定请求数测试",
+      "description": "执行固定数量的请求",
+      "url": "http://47.238.240.231:3000/",
+      "concurrent": 20,
+      "requests": 1000,
+      "method": "GET",
+      "testMode": "requests"
+    }
+  },
+  "endpoints": {
+    "homepage": {
+      "url": "http://47.238.240.231:3000/",
+      "description": "首页"
+    },
+    "works_api": {
+      "url": "http://47.238.240.231:3000/api/works",
+      "description": "作品列表API"
+    },
+    "auth_api": {
+      "url": "http://47.238.240.231:3000/api/auth/session",
+      "description": "认证会话API"
+    },
+    "upload_page": {
+      "url": "http://47.238.240.231:3000/upload",
+      "description": "上传页面"
+    },
+    "admin_page": {
+      "url": "http://47.238.240.231:3000/admin",
+      "description": "管理页面"
+    }
+  },
+  "performance_thresholds": {
+    "response_time": {
+      "excellent": 200,
+      "good": 500,
+      "acceptable": 1000,
+      "poor": 2000
+    },
+    "success_rate": {
+      "excellent": 99.9,
+      "good": 99.5,
+      "acceptable": 99.0,
+      "poor": 95.0
+    },
+    "requests_per_second": {
+      "light_load": 50,
+      "normal_load": 200,
+      "high_load": 500,
+      "stress_test": 1000
+    }
+  },
+  "test_data": {
+    "user_agents": [
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    ],
+    "sample_headers": {
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+      "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+      "Accept-Encoding": "gzip, deflate, br",
+      "Connection": "keep-alive",
+      "Upgrade-Insecure-Requests": "1"
+    }
+  },
+  "reporting": {
+    "output_formats": ["json", "csv", "html"],
+    "include_detailed_results": true,
+    "include_error_analysis": true,
+    "include_performance_charts": false
+  },
+  "advanced_settings": {
+    "timeout_seconds": 30,
+    "retry_count": 0,
+    "keep_alive": true,
+    "follow_redirects": true,
+    "verify_ssl": false
+  }
+}

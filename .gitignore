@@ -49,3 +49,6 @@ next-env.d.ts
 /.node_modules
 yunqi.zip
 /yunqi-docs
+/logs
+/.qoder
+

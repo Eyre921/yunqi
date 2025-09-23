@@ -1,459 +1,619 @@
-
 # API参考
 
 <cite>
 **本文档中引用的文件**  
-- [src/app/api/admin/online-counter/route.ts](file://src/app/api/admin/online-counter/route.ts)
-- [src/app/api/admin/stats/route.ts](file://src/app/api/admin/stats/route.ts)
-- [src/app/api/admin/upload-config/route.ts](file://src/app/api/admin/upload-config/route.ts)
-- [src/app/api/admin/users/route.ts](file://src/app/api/admin/users/route.ts)
-- [src/app/api/admin/users/[id]/route.ts](file://src/app/api/admin/users/[id]/route.ts)
-- [src/app/api/admin/works/route.ts](file://src/app/api/admin/works/route.ts)
-- [src/app/api/admin/works/[id]/route.ts](file://src/app/api/admin/works/[id]/route.ts)
-- [src/app/api/admin/works/[id]/approve/route.ts](file://src/app/api/admin/works/[id]/approve/route.ts)
-- [src/app/api/admin/works/[id]/reject/route.ts](file://src/app/api/admin/works/[id]/reject/route.ts)
-- [src/app/api/admin/works/[id]/featured/route.ts](file://src/app/api/admin/works/[id]/featured/route.ts)
-- [src/app/api/auth[...nextauth]/route.ts](file://src/app/api/auth[...nextauth]/route.ts)
-- [src/app/api/health/route.ts](file://src/app/api/health/route.ts)
-- [src/app/api/online-counter/route.ts](file://src/app/api/online-counter/route.ts)
-- [src/app/api/platform-config/route.ts](file://src/app/api/platform-config/route.ts)
-- [src/app/api/register/route.ts](file://src/app/api/register/route.ts)
-- [src/app/api/upload/route.ts](file://src/app/api/upload/route.ts)
-- [src/app/api/user/profile/route.ts](file://src/app/api/user/profile/route.ts)
-- [src/app/api/user/works/route.ts](file://src/app/api/user/works/route.ts)
-- [src/app/api/works/route.ts](file://src/app/api/works/route.ts)
-- [src/app/api/works/[id]/route.ts](file://src/app/api/works/[id]/route.ts)
-- [src/app/api/works/[id]/like/route.ts](file://src/app/api/works/[id]/like/route.ts)
-- [src/app/api/works/[id]/view/route.ts](file://src/app/api/works/[id]/view/route.ts)
-- [src/app/api/works/user-count/route.ts](file://src/app/api/works/user-count/route.ts)
+- [register/route.ts](file://src/app/api/register/route.ts)
+- [auth\[...nextauth]/route.ts](file://src/app/api/auth\[...nextauth]/route.ts)
+- [works/route.ts](file://src/app/api/works/route.ts)
+- [works/[id]/like/route.ts](file://src/app/api/works/[id]/like/route.ts)
+- [works/[id]/view/route.ts](file://src/app/api/works/[id]/view/route.ts)
+- [user/profile/route.ts](file://src/app/api/user/profile/route.ts)
+- [user/works/route.ts](file://src/app/api/user/works/route.ts)
+- [admin/works/[id]/approve/route.ts](file://src/app/api/admin/works/[id]/approve/route.ts)
+- [work.d.ts](file://src/types/work.d.ts)
 </cite>
 
 ## 目录
 1. [简介](#简介)
-2. [admin API 组](#admin-api-组)
-3. [auth API 组](#auth-api-组)
-4. [user API 组](#user-api-组)
-5. [works API 组](#works-api-组)
-6. [系统 API](#系统-api)
+2. [认证API](#认证api)
+   - [POST /api/register](#post-apiregister)
+   - [POST /api/auth/\[...nextauth\]](#post-apiauthnextauth)
+3. [作品API](#作品api)
+   - [GET /api/works](#get-apiworks)
+   - [POST /api/works](#post-apiworks)
+   - [POST /api/works/[id]/like](#post-apiworksidlike)
+   - [POST /api/works/[id]/view](#post-apiworksidsview)
+4. [用户API](#用户api)
+   - [GET /api/user/profile](#get-apiuserprofile)
+   - [PUT /api/user/profile](#put-apiuserprofile)
+   - [GET /api/user/works](#get-apiuserworks)
+5. [管理API](#管理api)
+   - [POST /api/admin/works/[id]/approve](#post-apiadminworksidapprove)
+6. [通用响应格式](#通用响应格式)
+7. [TypeScript类型定义](#typescript类型定义)
 
 ## 简介
-本文档为“数字化作品互动展示平台”提供完整的公共API端点参考。文档按功能模块分组，详细描述每个端点的HTTP方法、路径、认证要求、请求/响应格式及使用示例。所有信息均与代码实现同步，确保开发者能够准确调用API。
+本API参考文档为前端开发者提供权威的接口集成指南。文档按功能模块组织，涵盖认证、作品、用户和管理四大API类别。所有接口均基于Next.js App Router实现，使用Prisma进行数据库操作，并通过Zod进行请求验证。文档整合了`work.d.ts`中的TypeScript类型定义，确保前后端类型一致。
 
-## admin API 组
+## 认证API
 
-### GET /api/admin/online-counter - 获取在线人数配置
-- **方法**: GET
-- **认证要求**: 管理员登录
-- **请求头**: `Authorization: Bearer <token>`
-- **请求体**: 无
-- **成功响应**:
+### POST /api/register
+用户注册接口，允许新用户创建账户。
+
+**HTTP方法**  
+`POST`
+
+**URL路径**  
+`/api/register`
+
+**请求头**  
+- `Content-Type: application/json`
+
+**请求体Schema**  
+```json
+{
+  "name": "string, 1-50字符",
+  "email": "string, 有效邮箱格式",
+  "password": "string, 至少6位",
+  "confirmPassword": "string, 与password一致"
+}
+```
+
+**成功响应（201）**  
 ```json
 {
   "success": true,
   "data": {
-    "id": "clxyz123",
-    "currentCount": 150,
-    "baseCount": 100,
-    "maxCount": 1000,
-    "growthRate": 5,
-    "isEnabled": true,
-    "displayText": "当前在线人数",
-    "createdBy": "clwxyz789",
-    "createdAt": "2025-08-31T08:49:47.000Z",
-    "lastUpdated": "2025-09-05T14:31:57.000Z"
-  }
+    "id": "string",
+    "name": "string",
+    "email": "string",
+    "role": "USER",
+    "createdAt": "string, ISO格式"
+  },
+  "message": "注册成功，请登录"
 }
-```
-- **错误响应**:
-  - `403 Forbidden`: 权限不足
-  - `500 Internal Server Error`: 服务器内部错误
-- **curl 示例**:
-```bash
-curl -X GET "http://localhost:3000/api/admin/online-counter" \
-  -H "Authorization: Bearer your-jwt-token"
 ```
 
-### PUT /api/admin/online-counter - 更新在线人数配置
-- **方法**: PUT
-- **认证要求**: 管理员登录
-- **请求头**: `Authorization: Bearer <token>`
-- **请求体 (JSON Schema)**:
-```json
-{
-  "currentCount": 180,
-  "baseCount": 120,
-  "maxCount": 1200,
-  "growthRate": 6,
-  "isEnabled": true,
-  "displayText": "实时在线人数"
-}
-```
-- **成功响应**:
-```json
-{
-  "success": true,
-  "data": { /* 配置对象 */ },
-  "message": "在线人数配置更新成功"
-}
-```
-- **错误响应**:
-  - `400 Bad Request`: 输入数据无效（含验证错误详情）
-  - `403 Forbidden`: 权限不足
-  - `500 Internal Server Error`: 服务器内部错误
-- **curl 示例**:
+**错误响应**  
+- `409 Conflict`: 邮箱已被注册
+- `400 Bad Request`: 输入验证失败
+
+**curl示例**  
 ```bash
-curl -X PUT "http://localhost:3000/api/admin/online-counter" \
-  -H "Authorization: Bearer your-jwt-token" \
+curl -X POST http://localhost:3000/api/register \
   -H "Content-Type: application/json" \
   -d '{
-    "currentCount": 180,
-    "baseCount": 120,
-    "maxCount": 1200,
-    "growthRate": 6,
-    "isEnabled": true,
-    "displayText": "实时在线人数"
+    "name": "张三",
+    "email": "zhangsan@example.com",
+    "password": "123456",
+    "confirmPassword": "123456"
   }'
 ```
 
-### POST /api/admin/online-counter/reset - 重置在线人数
-- **方法**: POST
-- **认证要求**: 管理员登录
-- **请求头**: `Authorization: Bearer <token>`
-- **请求体**: 无
-- **成功响应**:
-```json
-{
-  "success": true,
-  "data": { /* 当前配置 */ },
-  "message": "在线人数已重置"
-}
-```
-- **错误响应**:
-  - `403 Forbidden`: 权限不足
-  - `500 Internal Server Error`: 服务器内部错误
-- **curl 示例**:
-```bash
-curl -X POST "http://localhost:3000/api/admin/online-counter/reset" \
-  -H "Authorization: Bearer your-jwt-token"
+**JavaScript fetch示例**  
+```javascript
+fetch('/api/register', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: '张三',
+    email: 'zhangsan@example.com',
+    password: '123456',
+    confirmPassword: '123456'
+  })
+})
 ```
 
-### GET /api/admin/stats - 获取统计数据
-- **方法**: GET
-- **认证要求**: 管理员登录
-- **请求头**: `Authorization: Bearer <token>`
-- **请求体**: 无
-- **成功响应**:
+**Section sources**
+- [register/route.ts](file://src/app/api/register/route.ts)
+
+### POST /api/auth/[...nextauth]
+NextAuth认证入口，处理登录、登出等身份验证操作。
+
+**HTTP方法**  
+`POST`, `GET`
+
+**URL路径**  
+`/api/auth/[...nextauth]`
+
+**说明**  
+该端点由NextAuth.js自动处理，支持多种认证方式（如凭证登录）。前端应使用`next-auth/react`的`signIn`和`signOut`函数进行调用。
+
+**JavaScript示例**  
+```javascript
+import { signIn, signOut } from 'next-auth/react';
+
+// 登录
+signIn('credentials', {
+  email: 'user@example.com',
+  password: 'password',
+  redirect: false
+});
+
+// 登出
+signOut();
+```
+
+**Section sources**
+- [auth\[...nextauth]/route.ts](file://src/app/api/auth\[...nextauth]/route.ts)
+- [auth.ts](file://src/lib/auth.ts)
+
+## 作品API
+
+### GET /api/works
+获取作品列表，支持分页、排序和状态过滤。
+
+**HTTP方法**  
+`GET`
+
+**URL路径**  
+`/api/works`
+
+**查询参数**  
+- `status`: `PENDING` | `APPROVED` | `REJECTED`
+- `sortBy`: `latest` | `popular` | `default`
+- `page`: 页码（默认1）
+- `limit`: 每页数量（默认10）
+
+**成功响应（200）**  
 ```json
 {
   "success": true,
   "data": {
-    "overview": {
-      "totalUsers": 150,
-      "totalWorks": 320,
-      "pendingWorks": 15,
-      "approvedWorks": 290,
-      "rejectedWorks": 15,
-      "recentUsers": 12,
-      "recentWorks": 25
-    },
-    "charts": {
-      "dailyWorks": [
-        { "date": "2025-09-05", "count": 8, "type": "works" }
-      ],
-      "dailyUsers": [
-        { "date": "2025-09-05", "count": 3, "type": "users" }
-      ]
-    },
-    "lists": {
-      "popularWorks": [
-        {
-          "id": "wk123",
-          "name": "digital-art-1.jpg",
-          "title": "数字艺术作品1",
-          "author": "艺术家A",
-          "createdAt": "2025-09-05T10:00:00Z",
-          "user": { "name": "用户A" }
-        }
-      ],
-      "activeUsers": [
-        {
-          "id": "usr123",
-          "name": "活跃用户1",
-          "email": "user1@example.com",
-          "createdAt": "2025-08-01T08:00:00Z",
-          "_count": { "works": 15 }
-        }
-      ]
-    }
-  }
-}
-```
-- **错误响应**:
-  - `403 Forbidden`: 权限不足
-  - `500 Internal Server Error`: 服务器内部错误
-- **curl 示例**:
-```bash
-curl -X GET "http://localhost:3000/api/admin/stats" \
-  -H "Authorization: Bearer your-jwt-token"
-```
-
-### GET /api/admin/upload-config - 获取上传配置
-- **方法**: GET
-- **认证要求**: 无（公开）
-- **请求头**: 无
-- **请求体**: 无
-- **成功响应**:
-```json
-{
-  "success": true,
-  "data": {
-    "isEnabled": true,
-    "startTime": "2025-09-01T00:00:00Z",
-    "endTime": "2025-09-30T23:59:59Z",
-    "maxUploadsPerUser": 5,
-    "maxFileSize": 10485760,
-    "allowedFormats": ["jpg", "jpeg", "png", "gif"],
-    "announcement": "上传功能已开启！",
-    "creator": {
-      "id": "usr123",
-      "name": "管理员",
-      "email": "admin@example.com"
-    },
-    "createdAt": "2025-09-05T15:08:39.000Z"
-  }
-}
-```
-- **错误响应**:
-  - `500 Internal Server Error`: 获取失败
-- **curl 示例**:
-```bash
-curl -X GET "http://localhost:3000/api/admin/upload-config"
-```
-
-### POST /api/admin/upload-config - 创建上传配置
-- **方法**: POST
-- **认证要求**: 管理员登录
-- **请求头**: `Authorization: Bearer <token>`
-- **请求体 (JSON Schema)**:
-```json
-{
-  "isEnabled": true,
-  "startTime": "2025-09-01T00:00:00Z",
-  "endTime": "2025-09-30T23:59:59Z",
-  "maxUploadsPerUser": 5,
-  "maxFileSize": 10485760,
-  "allowedFormats": ["jpg", "jpeg", "png"],
-  "announcement": "新上传周期开始"
-}
-```
-- **成功响应**:
-```json
-{
-  "success": true,
-  "data": { /* 新创建的配置 */ },
-  "message": "上传配置创建成功"
-}
-```
-- **错误响应**:
-  - `400 Bad Request`: 输入数据无效或时间逻辑错误
-  - `401 Unauthorized`: 用户不存在
-  - `403 Forbidden`: 权限不足
-  - `500 Internal Server Error`: 创建失败
-- **curl 示例**:
-```bash
-curl -X POST "http://localhost:3000/api/admin/upload-config" \
-  -H "Authorization: Bearer your-jwt-token" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "isEnabled": true,
-    "startTime": "2025-09-01T00:00:00Z",
-    "endTime": "2025-09-30T23:59:59Z",
-    "maxUploadsPerUser": 5,
-    "maxFileSize": 10485760,
-    "allowedFormats": ["jpg", "jpeg", "png"],
-    "announcement": "新上传周期开始"
-  }'
-```
-
-### GET /api/admin/users - 获取用户列表
-- **方法**: GET
-- **认证要求**: 管理员登录
-- **请求头**: `Authorization: Bearer <token>`
-- **查询参数**:
-  - `page` (可选): 页码，默认1
-  - `limit` (可选): 每页数量，默认10
-  - `role` (可选): 角色过滤（USER/ADMIN）
-  - `search` (可选): 搜索关键词
-- **成功响应**:
-```json
-{
-  "success": true,
-  "data": {
-    "users": [
+    "works": [
       {
-        "id": "usr123",
-        "name": "张三",
-        "email": "zhangsan@example.com",
-        "role": "USER",
-        "createdAt": "2025-08-01T08:00:00Z",
-        "_count": { "works": 5 }
+        "id": "string",
+        "name": "string",
+        "author": "string",
+        "imageUrl": "string",
+        "status": "APPROVED",
+        "featured": false,
+        "likeCount": 0,
+        "viewCount": 0,
+        "createdAt": "string",
+        "updatedAt": "string",
+        "user": {
+          "id": "string",
+          "name": "string",
+          "email": "string"
+        }
       }
     ],
     "pagination": {
       "page": 1,
       "limit": 10,
-      "total": 150,
-      "totalPages": 15
+      "total": 100,
+      "pages": 10
     }
   }
 }
 ```
-- **错误响应**:
-  - `400 Bad Request`: 查询参数无效
-  - `403 Forbidden`: 权限不足
-  - `500 Internal Server Error`: 服务器内部错误
-- **curl 示例**:
-```bash
-curl -X GET "http://localhost:3000/api/admin/users?page=1&limit=10&role=USER&search=张三" \
-  -H "Authorization: Bearer your-jwt-token"
+
+**JavaScript示例**  
+```javascript
+fetch('/api/works?sortBy=popular&limit=20')
+  .then(res => res.json())
+  .then(data => console.log(data.data.works));
 ```
 
-### GET /api/admin/users/[id] - 获取用户详情
-- **方法**: GET
-- **认证要求**: 管理员登录
-- **请求头**: `Authorization: Bearer <token>`
-- **请求体**: 无
-- **成功响应**:
+**Section sources**
+- [works/route.ts](file://src/app/api/works/route.ts)
+
+### POST /api/works
+创建新作品，允许游客和登录用户提交。
+
+**HTTP方法**  
+`POST`
+
+**URL路径**  
+`/api/works`
+
+**请求头**  
+- `Content-Type: application/json`
+
+**请求体Schema**  
+```json
+{
+  "name": "string, 作品名称（必需）",
+  "author": "string, 作者名（可选）",
+  "prompt": "string, 提示词（可选）",
+  "imageUrl": "string, 图片URL（必需）"
+}
+```
+
+**成功响应（201）**  
 ```json
 {
   "success": true,
   "data": {
-    "id": "usr123",
-    "name": "张三",
-    "email": "zhangsan@example.com",
-    "role": "USER",
-    "createdAt": "2025-08-01T08:00:00Z",
-    "works": [
-      {
-        "id": "wk123",
-        "name": "artwork1.jpg",
-        "title": "我的作品",
-        "status": "APPROVED",
-        "createdAt": "2025-08-05T10:00:00Z"
-      }
-    ]
-  }
+    "id": "string",
+    "name": "string",
+    "author": "string",
+    "imageUrl": "string",
+    "status": "PENDING",
+    "createdAt": "string"
+  },
+  "message": "作品提交成功，等待管理员审核"
 }
-```
-- **错误响应**:
-  - `403 Forbidden`: 权限不足
-  - `404 Not Found`: 用户不存在
-  - `500 Internal Server Error`: 服务器内部错误
-- **curl 示例**:
-```bash
-curl -X GET "http://localhost:3000/api/admin/users/usr123" \
-  -H "Authorization: Bearer your-jwt-token"
 ```
 
-### PUT /api/admin/users/[id] - 更新用户信息
-- **方法**: PUT
-- **认证要求**: 管理员登录
-- **请求头**: `Authorization: Bearer <token>`
-- **请求体 (JSON Schema)**:
-```json
-{
-  "name": "张三三",
-  "email": "zhangsan_new@example.com",
-  "role": "ADMIN"
-}
-```
-- **成功响应**:
-```json
-{
-  "success": true,
-  "data": { /* 更新后的用户信息 */ },
-  "message": "用户信息更新成功"
-}
-```
-- **错误响应**:
-  - `400 Bad Request`: 输入数据无效
-  - `403 Forbidden`: 权限不足
-  - `404 Not Found`: 用户不存在
-  - `409 Conflict`: 邮箱已被使用
-  - `500 Internal Server Error`: 服务器内部错误
-- **curl 示例**:
+**错误响应**  
+- `403 Forbidden`: 上传功能关闭或超出时间窗口
+- `400 Bad Request`: 必需字段缺失
+
+**curl示例**  
 ```bash
-curl -X PUT "http://localhost:3000/api/admin/users/usr123" \
-  -H "Authorization: Bearer your-jwt-token" \
+curl -X POST http://localhost:3000/api/works \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "张三三",
-    "email": "zhangsan_new@example.com",
-    "role": "ADMIN"
+    "name": "我的AI画作",
+    "author": "艺术家",
+    "imageUrl": "https://example.com/image.jpg"
   }'
 ```
 
-### DELETE /api/admin/users/[id] - 删除用户
-- **方法**: DELETE
-- **认证要求**: 管理员登录
-- **请求头**: `Authorization: Bearer <token>`
-- **请求体**: 无
-- **成功响应**:
+**Section sources**
+- [works/route.ts](file://src/app/api/works/route.ts)
+
+### POST /api/works/[id]/like
+为指定作品点赞，随机增加1-10个点赞数。
+
+**HTTP方法**  
+`POST`
+
+**URL路径**  
+`/api/works/[id]/like`
+
+**路径参数**  
+- `id`: 作品ID
+
+**成功响应（200）**  
 ```json
 {
   "success": true,
-  "message": "用户删除成功"
+  "data": {
+    "likeCount": 15,
+    "increment": 3
+  }
 }
 ```
-- **错误响应**:
-  - `403 Forbidden`: 权限不足或不能删除自己
-  - `404 Not Found`: 用户不存在
-  - `500 Internal Server Error`: 服务器内部错误
-- **curl 示例**:
-```bash
-curl -X DELETE "http://localhost:3000/api/admin/users/usr123" \
-  -H "Authorization: Bearer your-jwt-token"
+
+**错误响应**  
+- `404 Not Found`: 作品不存在或未审核通过
+
+**JavaScript示例**  
+```javascript
+fetch('/api/works/123/like', { method: 'POST' })
+  .then(res => res.json())
+  .then(data => console.log(`点赞数: ${data.data.likeCount}`));
 ```
 
-### GET /api/admin/works - 获取作品列表
-- **方法**: GET
-- **认证要求**: 管理员登录
-- **请求头**: `Authorization: Bearer <token>`
-- **查询参数**:
-  - `page`, `limit`: 分页
-  - `status`: 状态过滤（PENDING/APPROVED/REJECTED）
-  - `search`: 搜索关键词
-  - `sortBy`: 排序字段（createdAt/approvedAt/likeCount/viewCount）
-  - `sortOrder`: 排序方向（asc/desc）
-- **成功响应**:
+**Section sources**
+- [works/[id]/like/route.ts](file://src/app/api/works/[id]/like/route.ts)
+
+### POST /api/works/[id]/view
+增加指定作品的浏览量。
+
+**HTTP方法**  
+`POST`
+
+**URL路径**  
+`/api/works/[id]/view`
+
+**路径参数**  
+- `id`: 作品ID
+
+**成功响应（200）**  
+```json
+{
+  "success": true,
+  "data": {
+    "viewCount": 100
+  }
+}
+```
+
+**错误响应**  
+- `404 Not Found`: 作品不存在或未审核通过
+
+**JavaScript示例**  
+```javascript
+fetch('/api/works/123/view', { method: 'POST' });
+```
+
+**Section sources**
+- [works/[id]/view/route.ts](file://src/app/api/works/[id]/view/route.ts)
+
+## 用户API
+
+### GET /api/user/profile
+获取当前登录用户信息。
+
+**HTTP方法**  
+`GET`
+
+**URL路径**  
+`/api/user/profile`
+
+**请求头**  
+- `Authorization: Bearer <token>`（通过session自动处理）
+
+**成功响应（200）**  
+```json
+{
+  "success": true,
+  "data": {
+    "id": "string",
+    "name": "string",
+    "email": "string",
+    "role": "USER",
+    "image": "string",
+    "createdAt": "string",
+    "updatedAt": "string",
+    "_count": {
+      "works": 5
+    }
+  }
+}
+```
+
+**错误响应**  
+- `401 Unauthorized`: 未登录
+
+**JavaScript示例**  
+```javascript
+fetch('/api/user/profile')
+  .then(res => res.json())
+  .then(data => console.log(data.data.name));
+```
+
+**Section sources**
+- [user/profile/route.ts](file://src/app/api/user/profile/route.ts)
+
+### PUT /api/user/profile
+更新用户信息，支持修改姓名、邮箱和密码。
+
+**HTTP方法**  
+`PUT`
+
+**URL路径**  
+`/api/user/profile`
+
+**请求头**  
+- `Content-Type: application/json`
+
+**请求体Schema**  
+```json
+{
+  "name": "string",
+  "email": "string",
+  "currentPassword": "string, 修改密码时必需",
+  "newPassword": "string, 至少6位",
+  "confirmNewPassword": "string, 与newPassword一致"
+}
+```
+
+**成功响应（200）**  
+```json
+{
+  "success": true,
+  "data": {
+    "id": "string",
+    "name": "string",
+    "email": "string",
+    "role": "USER",
+    "_count": {
+      "works": 5
+    }
+  },
+  "message": "用户信息更新成功"
+}
+```
+
+**JavaScript示例**  
+```javascript
+fetch('/api/user/profile', {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: '新名字',
+    currentPassword: '旧密码',
+    newPassword: '新密码',
+    confirmNewPassword: '新密码'
+  })
+});
+```
+
+**Section sources**
+- [user/profile/route.ts](file://src/app/api/user/profile/route.ts)
+
+### GET /api/user/works
+获取当前用户的作品列表，支持分页和搜索。
+
+**HTTP方法**  
+`GET`
+
+**URL路径**  
+`/api/user/works`
+
+**查询参数**  
+- `page`: 页码
+- `limit`: 每页数量
+- `status`: `PENDING` | `APPROVED` | `REJECTED`
+- `search`: 搜索关键词
+
+**成功响应（200）**  
 ```json
 {
   "success": true,
   "data": {
     "works": [
       {
-        "id": "wk123",
-        "name": "artwork1.jpg",
-        "title": "作品标题",
-        "author": "作者名",
-        "status": "PENDING",
-        "createdAt": "2025-09-01T10:00:00Z",
-        "approvedAt": null,
-        "likeCount": 0,
-        "viewCount": 0,
-        "user": {
-          "id": "usr123",
-          "name": "张三",
-          "email": "zhangsan@example.com"
-        }
+        "id": "string",
+        "name": "string",
+        "author": "string",
+        "imageUrl": "string",
+        "status": "APPROVED",
+        "likeCount": 10,
+        "viewCount": 50
       }
     ],
-    "pagination": { /* 分页信息 */ }
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 5,
+      "totalPages": 1,
+      "hasNext": false,
+      "hasPrev": false
+    }
   }
 }
 ```
-- **错误响应**:
-  - `400 Bad Request`: 查询参数无效
-  - `403 Forbidden`: 权限不足
-  - `500 Internal Server Error`: 服务器内部错误
--
+
+**JavaScript示例**  
+```javascript
+fetch('/api/user/works?status=APPROVED')
+  .then(res => res.json())
+  .then(data => console.log(data.data.works));
+```
+
+**Section sources**
+- [user/works/route.ts](file://src/app/api/user/works/route.ts)
+
+## 管理API
+
+### POST /api/admin/works/[id]/approve
+管理员审核通过作品，仅管理员可访问。
+
+**HTTP方法**  
+`POST`
+
+**URL路径**  
+`/api/admin/works/[id]/approve`
+
+**路径参数**  
+- `id`: 作品ID
+
+**权限要求**  
+- 用户角色必须为 `ADMIN`
+
+**成功响应（200）**  
+```json
+{
+  "success": true,
+  "data": {
+    "id": "string",
+    "status": "APPROVED",
+    "approvedAt": "string",
+    "user": {
+      "id": "string",
+      "name": "string",
+      "email": "string"
+    }
+  },
+  "message": "作品审核通过"
+}
+```
+
+**错误响应**  
+- `403 Forbidden`: 权限不足
+- `404 Not Found`: 作品不存在
+- `422 Unprocessable Entity`: 作品状态不是待审核
+
+**JavaScript示例**  
+```javascript
+fetch('/api/admin/works/123/approve', { method: 'POST' })
+  .then(res => res.json())
+  .then(data => console.log(data.message));
+```
+
+**Section sources**
+- [admin/works/[id]/approve/route.ts](file://src/app/api/admin/works/[id]/approve/route.ts)
+
+## 通用响应格式
+所有API响应遵循统一格式：
+
+```json
+{
+  "success": "boolean",
+  "data": "object | array | null",
+  "message": "string | null",
+  "error": "string | null",
+  "code": "string | null",
+  "details": "any | null"
+}
+```
+
+- `success`: 请求是否成功
+- `data`: 成功时返回的数据
+- `message`: 人类可读的消息
+- `error`: 错误信息
+- `code`: 错误代码，用于前端处理
+
+## TypeScript类型定义
+关键类型定义来自`work.d.ts`，确保前后端类型一致。
+
+### WorkWithUser
+扩展作品类型，包含关联的用户信息。
+
+```typescript
+type WorkWithUser = Work & {
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+};
+```
+
+### WorksResponse
+作品列表响应格式。
+
+```typescript
+interface WorksResponse {
+  works: WorkWithUser[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+```
+
+### UserWork
+用户作品展示格式。
+
+```typescript
+interface UserWork {
+  id: string;
+  name: string;
+  author: string;
+  imageUrl: string;
+  status: WorkStatus;
+  featured: boolean;
+  likeCount: number;
+  viewCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+### UploadConfig
+上传配置类型。
+
+```typescript
+interface UploadConfig {
+  id: string;
+  isEnabled: boolean;
+  startTime: string | null;
+  endTime: string | null;
+  maxUploadsPerUser: number;
+  maxFileSize: number;
+  allowedFormats: string[];
+  announcement: string | null;
+}
+```
+
+**Section sources**
+- [work.d.ts](file://src/types/work.d.ts)

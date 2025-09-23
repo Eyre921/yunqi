@@ -14,21 +14,32 @@
 - [prisma.ts](file://src/lib/prisma.ts)
 - [auth.ts](file://src/lib/auth.ts)
 - [work.d.ts](file://src/types/work.d.ts)
+- [admin/performance/route.ts](file://src/app/api/admin/performance/route.ts) - *新增性能监控API*
+- [performance-monitor.ts](file://src/lib/performance-monitor.ts) - *新增性能监控核心模块*
 </cite>
 
-## 目录
+## 更新摘要
+**已更新内容**  
+- 在“核心API模块分析”中新增“管理API模块分析”章节，详细描述性能监控接口
+- 更新“API架构概览”以反映新增的管理API模块
+- 新增性能监控系统的数据结构与工作流程说明
+- 补充性能监控相关的时序图与类图
+- 更新“潜在性能瓶颈与缓存优化建议”以包含监控系统优化建议
+
+### 目录
 1. [简介](#简介)
 2. [API架构概览](#api架构概览)
 3. [核心API模块分析](#核心api模块分析)
-4. [数据序列化与响应封装](#数据序列化与响应封装)
-5. [API版本控制与状态码规范](#api版本控制与状态码规范)
-6. [典型请求流程时序图](#典型请求流程时序图)
-7. [新增API端点实现示例](#新增api端点实现示例)
-8. [性能瓶颈与缓存优化建议](#性能瓶颈与缓存优化建议)
-9. [结论](#结论)
+4. [管理API模块分析](#管理api模块分析)
+5. [数据序列化与响应封装](#数据序列化与响应封装)
+6. [API版本控制与状态码规范](#api版本控制与状态码规范)
+7. [典型请求流程时序图](#典型请求流程时序图)
+8. [新增API端点实现示例](#新增api端点实现示例)
+9. [性能瓶颈与缓存优化建议](#性能瓶颈与缓存优化建议)
+10. [结论](#结论)
 
 ## 简介
-本项目基于Next.js App Router构建RESTful API，提供作品展示、用户管理、在线统计等核心功能。API设计遵循清晰的职责划分原则，通过统一的响应格式和错误处理机制确保接口一致性。系统采用Prisma作为ORM层与数据库交互，并通过`serialize.ts`统一处理JSON序列化逻辑。
+本项目基于Next.js App Router构建RESTful API，提供作品展示、用户管理、在线统计等核心功能。API设计遵循清晰的职责划分原则，通过统一的响应格式和错误处理机制确保接口一致性。系统采用Prisma作为ORM层与数据库交互，并通过`serialize.ts`统一处理JSON序列化逻辑。新增性能监控系统，为管理员提供服务器运行状态的实时洞察。
 
 ## API架构概览
 API路由集中于`/src/app/api`目录下，采用模块化设计：
@@ -36,6 +47,7 @@ API路由集中于`/src/app/api`目录下，采用模块化设计：
 - `user/works`：用户个人作品管理接口
 - `online-counter`：在线人数统计接口
 - `health`：健康检查接口
+- `admin/performance`：性能监控接口（新增）
 
 所有API均使用Next.js Route Handlers实现，支持GET、POST、PUT、DELETE等HTTP方法，返回标准化JSON响应。
 
@@ -46,12 +58,15 @@ A[works] --> |作品CRUD| B[Prisma]
 C[user/works] --> |用户作品管理| B
 D[online-counter] --> |在线统计| B
 E[health] --> |健康检查| B
+F[admin/performance] --> |性能监控| G[PerformanceMonitor]
 end
 B --> F[(PostgreSQL)]
-G[Client] --> A
-G --> C
-G --> D
-G --> E
+G --> H[内存存储]
+I[Client] --> A
+I --> C
+I --> D
+I --> E
+I --> F
 ```
 
 **Diagram sources**
@@ -59,6 +74,7 @@ G --> E
 - [user/works/route.ts](file://src/app/api/user/works/route.ts)
 - [online-counter/route.ts](file://src/app/api/online-counter/route.ts)
 - [health/route.ts](file://src/app/api/health/route.ts)
+- [admin/performance/route.ts](file://src/app/api/admin/performance/route.ts)
 
 **Section sources**
 - [works/route.ts](file://src/app/api/works/route.ts)
@@ -250,6 +266,164 @@ G --> E
 **Section sources**
 - [health/route.ts](file://src/app/api/health/route.ts#L1-L26)
 
+## 管理API模块分析
+
+### 性能监控API（/api/admin/performance）
+为管理员提供服务器性能指标的实时监控与历史数据分析。
+
+#### GET /api/admin/performance - 获取性能指标
+- **方法**: GET
+- **认证要求**: 必须登录且为管理员角色
+- **查询参数**:
+  - `minutes`: 统计时间窗口（默认5分钟）
+  - `history`: 是否包含历史数据（true/false）
+- **响应结构**:
+```json
+{
+  "success": true,
+  "data": {
+    "current": {
+      "timestamp": 1730000000000,
+      "cpu": {
+        "usage": 15.5,
+        "loadAverage": [1.2, 1.1, 1.0],
+        "cores": 8
+      },
+      "memory": {
+        "used": 2147483648,
+        "free": 4294967296,
+        "total": 6442450944,
+        "usagePercent": 33.3,
+        "heapUsed": 1073741824,
+        "heapTotal": 2147483648
+      },
+      "uptime": 3600
+    },
+    "stats": {
+      "avgCpuUsage": 15.2,
+      "avgMemoryUsage": 33.1,
+      "avgResponseTime": 45.6,
+      "maxMemoryUsage": 40.0,
+      "maxCpuUsage": 25.0,
+      "maxResponseTime": 120.0
+    },
+    "alerts": [
+      {
+        "type": "warning",
+        "message": "内存使用率较高: 33.3%"
+      }
+    ],
+    "serverInfo": {
+      "nodeVersion": "v18.17.0",
+      "platform": "linux",
+      "arch": "x64",
+      "pid": 12345
+    },
+    "history": [...]
+  }
+}
+```
+- **错误处理**:
+  - 401: 未登录（UNAUTHORIZED）
+  - 403: 权限不足（非管理员）
+  - 500: 获取指标失败
+
+**Section sources**
+- [admin/performance/route.ts](file://src/app/api/admin/performance/route.ts#L1-L123)
+
+#### DELETE /api/admin/performance - 清理性能数据
+- **方法**: DELETE
+- **权限控制**: 仅管理员可访问
+- **功能**: 重置性能监控历史数据
+- **响应**:
+  - 200: 清理成功
+  - 401: 未登录
+  - 403: 权限不足
+  - 500: 清理失败
+
+**Section sources**
+- [admin/performance/route.ts](file://src/app/api/admin/performance/route.ts#L125-L188)
+
+### 性能监控系统架构
+基于单例模式实现的内存中性能监控系统，定期采集服务器指标。
+
+```mermaid
+classDiagram
+class PerformanceMonitor {
+-metrics : PerformanceMetrics[]
+-maxMetrics : number
++getCurrentMetrics() : PerformanceMetrics
++recordMetrics(responseTime? : number) : void
++getMetrics(limit? : number) : PerformanceMetrics[]
++getStats(minutes : number) : Stats
++checkAlerts() : Alert[]
++startMonitoring(intervalMs : number) : void
+}
+class PerformanceMetrics {
++timestamp : number
++cpu : CPUInfo
++memory : MemoryInfo
++uptime : number
++responseTime? : number
+}
+class CPUInfo {
++usage : number
++loadAverage : number[]
++cores : number
+}
+class MemoryInfo {
++used : number
++free : number
++total : number
++usagePercent : number
++heapUsed : number
++heapTotal : number
+}
+PerformanceMonitor --> "1" PerformanceMetrics : 存储历史数据
+PerformanceMetrics --> "1" CPUInfo
+PerformanceMetrics --> "1" MemoryInfo
+```
+
+**Diagram sources**
+- [performance-monitor.ts](file://src/lib/performance-monitor.ts#L22-L202)
+- [performance-monitor.ts](file://src/lib/performance-monitor.ts#L3-L20)
+
+**Section sources**
+- [performance-monitor.ts](file://src/lib/performance-monitor.ts#L22-L202)
+
+### 性能监控数据采集流程
+```mermaid
+sequenceDiagram
+participant Client as 客户端
+participant API as API路由
+participant Monitor as PerformanceMonitor
+participant Middleware as performanceMiddleware
+Client->>API : 发起API请求
+API->>Middleware : 请求进入
+Middleware->>Middleware : 记录开始时间
+Middleware->>API : 调用业务逻辑
+API->>Monitor : 业务处理完成
+Monitor->>Monitor : 计算响应时间
+Monitor->>Monitor : 采集当前系统指标
+Monitor->>Monitor : 存储性能数据
+Middleware->>Client : 返回响应
+Client->>API : GET /api/admin/performance
+API->>Monitor : 获取当前指标
+Monitor->>API : 返回currentMetrics
+API->>Monitor : 获取统计信息
+Monitor->>API : 返回stats
+API->>Monitor : 检查告警
+Monitor->>API : 返回alerts
+API->>Client : 返回完整性能数据
+```
+
+**Diagram sources**
+- [admin/performance/route.ts](file://src/app/api/admin/performance/route.ts#L1-L123)
+- [performance-monitor.ts](file://src/lib/performance-monitor.ts#L205-L217)
+
+**Section sources**
+- [admin/performance/route.ts](file://src/app/api/admin/performance/route.ts#L1-L123)
+
 ## 数据序列化与响应封装
 通过`serialize.ts`统一处理数据序列化：
 
@@ -381,6 +555,7 @@ export async function GET(request: NextRequest) {
 2. **序列化开销**：大型数据集的JSON序列化
 3. **在线人数更新**：频繁的数据库写操作
 4. **OSS文件删除**：同步删除可能阻塞请求
+5. **性能监控数据存储**：内存中存储大量历史指标可能影响性能
 
 ### 缓存优化建议
 1. **Redis缓存作品列表**：
@@ -403,9 +578,15 @@ export async function GET(request: NextRequest) {
    - OSS文件删除改为后台任务
    - 避免阻塞主请求流程
 
+6. **性能监控优化**：
+   - 将历史性能数据持久化到数据库，避免内存占用过高
+   - 提供数据导出功能，支持离线分析
+   - 优化告警检查频率，避免过度消耗CPU
+
 **Section sources**
 - [works/route.ts](file://src/app/api/works/route.ts)
 - [online-counter/route.ts](file://src/app/api/online-counter/route.ts)
+- [performance-monitor.ts](file://src/lib/performance-monitor.ts)
 
 ## 结论
-本项目API设计遵循RESTful原则，通过模块化路由、统一响应格式和严格的错误处理机制确保接口一致性。系统已实现作品管理、用户交互、在线统计等核心功能，并具备良好的扩展性。建议后续引入缓存机制以提升高并发场景下的性能表现，同时考虑API版本化策略以支持未来迭代。
+本项目API设计遵循RESTful原则，通过模块化路由、统一响应格式和严格的错误处理机制确保接口一致性。系统已实现作品管理、用户交互、在线统计等核心功能，并新增了管理员性能监控模块。性能监控系统通过内存存储和定期采集的方式，为系统运维提供了重要支持。建议后续引入缓存机制以提升高并发场景下的性能表现，同时考虑API版本化策略以支持未来迭代，并优化性能监控数据的持久化方案。

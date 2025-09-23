@@ -11,7 +11,19 @@
 - [user/works/route.ts](file://src/app/api/user/works/route.ts)
 - [admin/works/[id]/approve/route.ts](file://src/app/api/admin/works/[id]/approve/route.ts)
 - [work.d.ts](file://src/types/work.d.ts)
+- [health/route.ts](file://src/app/api/health/route.ts) - *新增于提交 bb373925*
+- [platform-config/route.ts](file://src/app/api/platform-config/route.ts) - *新增于提交 6fe8c1f1*
+- [admin/performance/route.ts](file://src/app/api/admin/performance/route.ts) - *新增于提交 bb373925*
 </cite>
+
+## 更新摘要
+**已做更改**  
+- 新增健康检查API部分
+- 新增平台配置API部分
+- 新增性能监控API部分
+- 更新通用响应格式以包含新错误代码
+- 更新TypeScript类型定义以包含新接口
+- 所有内容已按语言转换规则完全汉化
 
 ## 目录
 1. [简介](#简介)
@@ -29,6 +41,9 @@
    - [GET /api/user/works](#get-apiuserworks)
 5. [管理API](#管理api)
    - [POST /api/admin/works/[id]/approve](#post-apiadminworksidapprove)
+   - [GET /api/health](#get-apihealth)
+   - [GET/POST /api/platform-config](#getpost-apiplatform-config)
+   - [GET/DELETE /api/admin/performance](#getdelete-apiadminperformance)
 6. [通用响应格式](#通用响应格式)
 7. [TypeScript类型定义](#typescript类型定义)
 
@@ -530,6 +545,212 @@ fetch('/api/admin/works/123/approve', { method: 'POST' })
 **Section sources**
 - [admin/works/[id]/approve/route.ts](file://src/app/api/admin/works/[id]/approve/route.ts)
 
+### GET /api/health
+健康检查接口，用于监控API服务状态。
+
+**HTTP方法**  
+`GET`
+
+**URL路径**  
+`/api/health`
+
+**成功响应（200）**  
+```json
+{
+  "success": true,
+  "message": "API服务正常",
+  "timestamp": "string, ISO格式",
+  "database": "connected"
+}
+```
+
+**错误响应（500）**  
+```json
+{
+  "success": false,
+  "message": "API服务异常",
+  "timestamp": "string, ISO格式",
+  "database": "disconnected",
+  "error": "string"
+}
+```
+
+**JavaScript示例**  
+```javascript
+fetch('/api/health')
+  .then(res => res.json())
+  .then(data => console.log(data.message));
+```
+
+**Section sources**
+- [health/route.ts](file://src/app/api/health/route.ts)
+
+### GET/POST /api/platform-config
+平台配置管理接口，用于获取和更新平台主标题。
+
+**HTTP方法**  
+`GET`, `POST`
+
+**URL路径**  
+`/api/platform-config`
+
+**权限要求**  
+- `GET`: 无特殊权限要求
+- `POST`: 用户角色必须为 `ADMIN`
+
+**GET请求 - 获取配置**
+**成功响应（200）**  
+```json
+{
+  "success": true,
+  "data": {
+    "id": "string",
+    "title": "string",
+    "updatedAt": "string, ISO格式"
+  }
+}
+```
+
+**POST请求 - 更新配置**
+**请求头**  
+- `Content-Type: application/json`
+
+**请求体Schema**  
+```json
+{
+  "title": "string, 1-100字符"
+}
+```
+
+**成功响应（200）**  
+```json
+{
+  "success": true,
+  "data": {
+    "id": "string",
+    "title": "string",
+    "updatedAt": "string, ISO格式"
+  },
+  "message": "平台配置更新成功"
+}
+```
+
+**错误响应**  
+- `401 Unauthorized`: 权限不足
+- `400 Bad Request`: 输入验证失败
+
+**JavaScript示例**  
+```javascript
+// 获取配置
+fetch('/api/platform-config')
+  .then(res => res.json())
+  .then(data => console.log(data.data.title));
+
+// 更新配置
+fetch('/api/platform-config', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ title: '新平台标题' })
+});
+```
+
+**Section sources**
+- [platform-config/route.ts](file://src/app/api/platform-config/route.ts)
+- [PlatformConfigManagement.tsx](file://src/components/admin/PlatformConfigManagement.tsx)
+
+### GET/DELETE /api/admin/performance
+性能监控接口，用于获取服务器性能指标和清理监控数据。
+
+**HTTP方法**  
+`GET`, `DELETE`
+
+**URL路径**  
+`/api/admin/performance`
+
+**权限要求**  
+- 用户角色必须为 `ADMIN`
+
+**GET请求 - 获取性能指标**
+**查询参数**  
+- `minutes`: 统计时间范围（默认5分钟）
+- `history`: 是否包含历史数据（true/false）
+
+**成功响应（200）**  
+```json
+{
+  "success": true,
+  "data": {
+    "current": {
+      "timestamp": "number",
+      "cpu": {
+        "usage": "number",
+        "loadAverage": "number[]",
+        "cores": "number"
+      },
+      "memory": {
+        "used": "number",
+        "free": "number",
+        "total": "number",
+        "usagePercent": "number",
+        "heapUsed": "number",
+        "heapTotal": "number"
+      },
+      "uptime": "number",
+      "responseTime": "number"
+    },
+    "stats": {
+      "avgCpuUsage": "number",
+      "avgMemoryUsage": "number",
+      "avgResponseTime": "number",
+      "maxMemoryUsage": "number",
+      "maxCpuUsage": "number",
+      "maxResponseTime": "number"
+    },
+    "alerts": [
+      {
+        "type": "warning|critical|info",
+        "message": "string"
+      }
+    ],
+    "serverInfo": {
+      "nodeVersion": "string",
+      "platform": "string",
+      "arch": "string",
+      "pid": "number"
+    },
+    "history": [
+      // 历史性能指标数组
+    ]
+  }
+}
+```
+
+**DELETE请求 - 清理性能数据**
+**成功响应（200）**  
+```json
+{
+  "success": true,
+  "message": "性能监控数据已清理"
+}
+```
+
+**JavaScript示例**  
+```javascript
+// 获取性能指标
+fetch('/api/admin/performance?minutes=10&history=true')
+  .then(res => res.json())
+  .then(data => console.log(data.data));
+
+// 清理性能数据
+fetch('/api/admin/performance', { method: 'DELETE' })
+  .then(res => res.json())
+  .then(data => console.log(data.message));
+```
+
+**Section sources**
+- [admin/performance/route.ts](file://src/app/api/admin/performance/route.ts)
+- [performance-monitor.ts](file://src/lib/performance-monitor.ts)
+
 ## 通用响应格式
 所有API响应遵循统一格式：
 
@@ -549,6 +770,7 @@ fetch('/api/admin/works/123/approve', { method: 'POST' })
 - `message`: 人类可读的消息
 - `error`: 错误信息
 - `code`: 错误代码，用于前端处理
+- `details`: 错误详情，如验证错误信息
 
 ## TypeScript类型定义
 关键类型定义来自`work.d.ts`，确保前后端类型一致。
@@ -577,6 +799,8 @@ interface WorksResponse {
     limit: number;
     total: number;
     totalPages: number;
+    hasNext?: boolean;
+    hasPrev?: boolean;
   };
 }
 ```
@@ -612,8 +836,46 @@ interface UploadConfig {
   maxFileSize: number;
   allowedFormats: string[];
   announcement: string | null;
+  createdAt: string;
+}
+```
+
+### PerformanceMetrics
+性能监控指标类型。
+
+```typescript
+interface PerformanceMetrics {
+  timestamp: number;
+  cpu: {
+    usage: number;
+    loadAverage: number[];
+    cores: number;
+  };
+  memory: {
+    used: number;
+    free: number;
+    total: number;
+    usagePercent: number;
+    heapUsed: number;
+    heapTotal: number;
+  };
+  uptime: number;
+  responseTime?: number;
+}
+```
+
+### PlatformConfig
+平台配置类型。
+
+```typescript
+interface PlatformConfig {
+  id: string;
+  title: string;
+  updatedAt: string;
 }
 ```
 
 **Section sources**
 - [work.d.ts](file://src/types/work.d.ts)
+- [performance-monitor.ts](file://src/lib/performance-monitor.ts)
+- [platform-config/route.ts](file://src/app/api/platform-config/route.ts)

@@ -13,7 +13,16 @@
 - [platform-config/route.ts](file://src/app/api/platform-config/route.ts)
 - [AdminStats.tsx](file://src/components/admin/AdminStats.tsx)
 - [add_platform_config/migration.sql](file://prisma/migrations/20250905150839_add_platform_config/migration.sql)
+- [performance/route.ts](file://src/app/api/admin/performance/route.ts) - *新增性能监控API*
+- [performance-monitor.ts](file://src/lib/performance-monitor.ts) - *新增性能监控类*
 </cite>
+
+## 更新摘要
+**变更内容**   
+- 新增“性能监控类API”章节，涵盖性能指标获取与数据清理功能
+- 更新“安全注意事项”以包含性能监控相关的权限控制说明
+- 所有新增内容均基于最新代码变更，确保文档与实现一致
+- 增强源码追踪系统，新增对`performance-monitor`模块的引用
 
 ## 目录
 1. [简介](#简介)
@@ -21,10 +30,11 @@
 3. [用户管理类API](#用户管理类api)
 4. [统计类API](#统计类api)
 5. [配置类API](#配置类api)
-6. [安全注意事项](#安全注意事项)
+6. [性能监控类API](#性能监控类api)
+7. [安全注意事项](#安全注意事项)
 
 ## 简介
-本文档为管理员专用API文档，涵盖作品审核、用户管理、数据统计和平台配置四大功能模块。所有API端点均需管理员权限访问，通过中间件进行身份验证。文档详细说明了各功能的业务逻辑、调用示例及系统联动机制。
+本文档为管理员专用API文档，涵盖作品审核、用户管理、数据统计、平台配置及性能监控五大功能模块。所有API端点均需管理员权限访问，通过中间件进行身份验证。文档详细说明了各功能的业务逻辑、调用示例及系统联动机制。
 
 ## 作品管理类API
 
@@ -365,6 +375,88 @@ curl -X POST https://example.com/api/platform-config \
 **Section sources**
 - [platform-config/route.ts](file://src/app/api/platform-config/route.ts)
 
+## 性能监控类API
+
+### 性能指标监控 (/performance)
+提供服务器性能监控功能，包含实时指标、历史统计和告警检测。
+
+**业务逻辑**：
+- 通过`performanceMonitor`单例模式收集服务器性能数据
+- 定期（默认30秒）记录CPU、内存、负载等系统指标
+- 支持获取当前指标、指定时间范围内的统计数据及告警信息
+- 可选择性获取历史数据用于性能分析
+- 提供数据清理功能，重置监控记录
+
+**curl示例**：
+```bash
+# 获取性能指标（最近5分钟统计）
+curl -X GET https://example.com/api/admin/performance \
+  -H "Authorization: Bearer <admin_token>"
+
+# 获取性能指标并包含历史数据
+curl -X GET https://example.com/api/admin/performance?minutes=10&history=true \
+  -H "Authorization: Bearer <admin_token>"
+
+# 清理性能监控数据
+curl -X DELETE https://example.com/api/admin/performance \
+  -H "Authorization: Bearer <admin_token>"
+```
+
+**数据结构**：
+```json
+{
+  "success": true,
+  "data": {
+    "current": {
+      "timestamp": 1730000000000,
+      "cpu": {
+        "usage": 15.5,
+        "loadAverage": [1.2, 1.1, 1.0],
+        "cores": 4
+      },
+      "memory": {
+        "used": 1073741824,
+        "free": 2147483648,
+        "total": 3221225472,
+        "usagePercent": 33.3,
+        "heapUsed": 104857600,
+        "heapTotal": 209715200
+      },
+      "uptime": 3600
+    },
+    "stats": {
+      "avgCpuUsage": 14.2,
+      "avgMemoryUsage": 32.1,
+      "avgResponseTime": 45.6,
+      "maxMemoryUsage": 40.5,
+      "maxCpuUsage": 25.8,
+      "maxResponseTime": 120.3
+    },
+    "alerts": [
+      {
+        "type": "warning",
+        "message": "内存使用率较高: 33.3%"
+      }
+    ],
+    "serverInfo": {
+      "nodeVersion": "v18.17.0",
+      "platform": "linux",
+      "arch": "x64",
+      "pid": 12345
+    },
+    "history": [...]
+  }
+}
+```
+
+**端点说明**：
+- `GET /api/admin/performance`：获取性能指标和统计信息
+- `DELETE /api/admin/performance`：清理性能监控数据
+
+**Section sources**
+- [performance/route.ts](file://src/app/api/admin/performance/route.ts)
+- [performance-monitor.ts](file://src/lib/performance-monitor.ts)
+
 ## 安全注意事项
 1. **权限验证**：所有管理员API均通过中间件验证`session.user.role === 'ADMIN'`
 2. **防止越权**：禁止管理员删除自己的账户，确保操作者身份合法
@@ -372,3 +464,4 @@ curl -X POST https://example.com/api/platform-config \
 4. **外键约束**：删除用户时级联删除其作品，维护数据完整性
 5. **敏感操作**：配置更新等敏感操作记录操作者信息，便于审计追踪
 6. **错误处理**：区分不同错误类型，避免泄露敏感信息给客户端
+7. **性能监控安全**：性能数据访问同样需要管理员权限，防止信息泄露

@@ -6,10 +6,10 @@ import { z } from 'zod';
 
 // 在线人数配置验证模式
 const OnlineCounterConfigSchema = z.object({
-  currentCount: z.number().min(0).max(10000).optional(),
-  baseCount: z.number().min(0).max(10000).optional(),
-  maxCount: z.number().min(0).max(10000).optional(),
-  growthRate: z.number().min(0).max(100).optional(),
+  currentCount: z.number().min(0).optional(),
+  baseCount: z.number().min(0).optional(),
+  maxCount: z.number().min(0).optional(),
+  growthRate: z.number().min(0).optional(),
   isEnabled: z.boolean().optional(),
   displayText: z.string().min(1).max(100).optional()
 });

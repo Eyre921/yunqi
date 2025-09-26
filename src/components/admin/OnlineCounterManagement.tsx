@@ -197,7 +197,6 @@ export default function OnlineCounterManagement() {
                   <input
                     type="number"
                     min="0"
-                    max="10000"
                     value={formData.currentCount}
                     onChange={(e) => setFormData(prev => ({ ...prev, currentCount: parseInt(e.target.value) || 0 }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -211,7 +210,6 @@ export default function OnlineCounterManagement() {
                   <input
                     type="number"
                     min="0"
-                    max="10000"
                     value={formData.baseCount}
                     onChange={(e) => setFormData(prev => ({ ...prev, baseCount: parseInt(e.target.value) || 0 }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -225,7 +223,6 @@ export default function OnlineCounterManagement() {
                   <input
                     type="number"
                     min="0"
-                    max="10000"
                     value={formData.maxCount}
                     onChange={(e) => setFormData(prev => ({ ...prev, maxCount: parseInt(e.target.value) || 0 }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -239,7 +236,6 @@ export default function OnlineCounterManagement() {
                   <input
                     type="number"
                     min="0"
-                    max="100"
                     step="0.1"
                     value={formData.growthRate}
                     onChange={(e) => setFormData(prev => ({ ...prev, growthRate: parseFloat(e.target.value) || 0 }))}
